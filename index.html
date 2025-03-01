@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFA500">
+
+<!-- Para que se comporte como app en iPhone -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Liquidación Candelas">
   <meta charset="UTF-8">
   <title>Liquidación Candelas</title>
   <style>
@@ -11,7 +19,20 @@
       color: #000;
       margin: 0;
       padding: 20px;
-    }
+    <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(registration => {
+          console.log('Service Worker registrado:', registration.scope);
+        })
+        .catch(error => {
+          console.log('Error al registrar el Service Worker:', error);
+        });
+    });
+  }
+</script>
+}
     header {
       text-align: center;
       padding: 20px;
@@ -201,5 +222,29 @@
       alert('Funcionalidad de descarga en Excel pendiente de implementación.');
     });
   </script>
+<script>
+  // Cuando se haga clic en el botón con id "downloadExcel"
+  document.getElementById('downloadExcel').addEventListener('click', function() {
+    // 1. Crea un libro de Excel en blanco
+    var wb = XLSX.utils.book_new();
+    
+    // 2. Crea una tabla con una fila de títulos
+    var ws_data = [["Cliente", "Importe", "Tipo de Pago"]];
+    
+    // 3. Agrega cada registro del "history" a la tabla
+    history.forEach(function(entry) {
+      ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
+    });
+    
+    // 4. Convierte esa tabla en una hoja que Excel entienda
+    var ws = XLSX.utils.aoa_to_sheet(ws_data);
+    
+    // 5. Añade esa hoja al libro y le pone el nombre "Historial"
+    XLSX.utils.book_append_sheet(wb, ws, "Historial");
+    
+    // 6. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
+    XLSX.writeFile(wb, 'historial.xlsx');
+  });
+</script>
 </body>
 </html>
