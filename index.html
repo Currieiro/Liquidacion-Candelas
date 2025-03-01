@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Liquidación Candelas</title>
+  <style>
+    /* Estilos generales */
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff;
+      color: #000;
+      margin: 0;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      background-color: #FFA500;
+      color: #fff;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    /* Formulario */
+    form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    form input, form button {
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #000;
+      border-radius: 5px;
+    }
+    form input[type="text"],
+    form input[type="number"] {
+      flex: 1 1 200px;
+    }
+    .payment-method {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    /* Tabla de historial */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid #000;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    /* Resumen de totales */
+    .summary {
+      display: flex;
+      justify-content: space-around;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border: 1px solid #000;
+      border-radius: 5px;
+    }
+    /* Botones de acciones */
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .buttons button {
+      flex: 1;
+      margin: 5px;
+      padding: 10px;
+      background-color: #FFA500;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .buttons button:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Liquidación Candelas</h1>
+  </header>
+  <div class="container">
+    <!-- Formulario para ingresar los datos -->
+    <form id="paymentForm">
+      <input type="text" id="clientName" placeholder="Nombre del cliente" required>
+      <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
+      <div class="payment-method">
+        <label>
+          <input type="radio" name="paymentType" value="Efectivo" required> Efectivo
+        </label>
+        <label>
+          <input type="radio" name="paymentType" value="Tarjeta"> Tarjeta
+        </label>
+      </div>
+      <button type="submit">Agregar</button>
+    </form>
+    
+    <!-- Tabla de historial de cobros -->
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Importe</th>
+          <th>Tipo de Pago</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filas generadas dinámicamente -->
+      </tbody>
+    </table>
+    
+    <!-- Sección de resumen -->
+    <div class="summary">
+      <div>
+        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
+      </div>
+      <div>
+        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
+      </div>
+    </div>
+    
+    <!-- Botones para descargar o borrar historial -->
+    <div class="buttons">
+      <button id="downloadExcel">Descargar Excel</button>
+      <button id="clearHistory">Borrar Historial</button>
+    </div>
+  </div>
+  
+  <!-- Scripts para manejar la lógica de la aplicación -->
+  <script>
+    // Array para almacenar el historial de cobros
+    const history = [];
+
+    // Función para actualizar la tabla y los totales
+    function updateUI() {
+      const tableBody = document.getElementById('historyTable').querySelector('tbody');
+      tableBody.innerHTML = '';
+      
+      let totalEfectivo = 0;
+      let totalTarjeta = 0;
+      
+      history.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.client}</td>
+          <td>${entry.amount.toFixed(2)}</td>
+          <td>${entry.type}</td>
+        `;
+        tableBody.appendChild(row);
+        
+        if (entry.type === 'Efectivo') {
+          totalEfectivo += entry.amount;
+        } else {
+          totalTarjeta += entry.amount;
+        }
+      });
+      
+      document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
+      document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
+    }
+
+    // Manejo del envío del formulario
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const client = document.getElementById('clientName').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+      const type = document.querySelector('input[name="paymentType"]:checked').value;
+      
+      // Agregar registro al historial
+      history.push({ client, amount, type });
+      updateUI();
+      
+      // Reinicia el formulario
+      this.reset();
+    });
+
+    // Borrar el historial con confirmación
+    document.getElementById('clearHistory').addEventListener('click', function() {
+      if (confirm('¿Estás seguro de borrar el historial?')) {
+        history.length = 0; // Vacía el array
+        updateUI();
+      }
+    });
+
+    // Descargar el historial en Excel (funcionalidad pendiente)
+    document.getElementById('downloadExcel').addEventListener('click', function() {
+      // Aquí podrías integrar una librería como SheetJS (xlsx) para generar y descargar el archivo Excel.
+      alert('Funcionalidad de descarga en Excel pendiente de implementación.');
+    });
+  </script>
+</body>
+</html>
