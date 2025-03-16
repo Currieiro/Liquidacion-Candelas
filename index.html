@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#FFA500">
-
-<!-- Para que se comporte como app en iPhone -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Liquidación Candelas">
   <meta charset="UTF-8">
   <title>Liquidación Candelas</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FFA500">
+  <!-- Para que se comporte como app en iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Liquidación Candelas">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     /* Estilos generales */
     body {
@@ -19,20 +18,7 @@
       color: #000;
       margin: 0;
       padding: 20px;
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js')
-        .then(registration => {
-          console.log('Service Worker registrado:', registration.scope);
-        })
-        .catch(error => {
-          console.log('Error al registrar el Service Worker:', error);
-        });
-    });
-  }
-</script>
-}
+    }
     header {
       text-align: center;
       padding: 20px;
@@ -107,6 +93,20 @@
       opacity: 0.8;
     }
   </style>
+  <!-- Registro del Service Worker (si lo deseas conservar) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('Service Worker registrado:', registration.scope);
+          })
+          .catch(error => {
+            console.log('Error al registrar el Service Worker:', error);
+          });
+      });
+    }
+  </script>
 </head>
 <body>
   <header>
@@ -127,7 +127,6 @@
       </div>
       <button type="submit">Agregar</button>
     </form>
-    
     <!-- Tabla de historial de cobros -->
     <table id="historyTable">
       <thead>
@@ -141,7 +140,6 @@
         <!-- Filas generadas dinámicamente -->
       </tbody>
     </table>
-    
     <!-- Sección de resumen -->
     <div class="summary">
       <div>
@@ -151,27 +149,28 @@
         <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
       </div>
     </div>
-    
     <!-- Botones para descargar o borrar historial -->
     <div class="buttons">
       <button id="downloadExcel">Descargar Excel</button>
       <button id="clearHistory">Borrar Historial</button>
     </div>
   </div>
-  
   <!-- Scripts para manejar la lógica de la aplicación -->
   <script>
-    // Array para almacenar el historial de cobros
-    const history = [];
+    // Cargar historial desde localStorage o iniciar con array vacío
+    let history = JSON.parse(localStorage.getItem('history')) || [];
+
+    // Función para guardar el historial en localStorage
+    function saveHistory() {
+      localStorage.setItem('history', JSON.stringify(history));
+    }
 
     // Función para actualizar la tabla y los totales
     function updateUI() {
       const tableBody = document.getElementById('historyTable').querySelector('tbody');
       tableBody.innerHTML = '';
-      
       let totalEfectivo = 0;
       let totalTarjeta = 0;
-      
       history.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -180,71 +179,59 @@
           <td>${entry.type}</td>
         `;
         tableBody.appendChild(row);
-        
         if (entry.type === 'Efectivo') {
           totalEfectivo += entry.amount;
         } else {
           totalTarjeta += entry.amount;
         }
       });
-      
       document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
       document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
     }
 
+    // Inicializar la UI con datos persistentes
+    updateUI();
+
     // Manejo del envío del formulario
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      
       const client = document.getElementById('clientName').value;
       const amount = parseFloat(document.getElementById('amount').value);
       const type = document.querySelector('input[name="paymentType"]:checked').value;
-      
       // Agregar registro al historial
       history.push({ client, amount, type });
+      saveHistory();
       updateUI();
-      
-      // Reinicia el formulario
       this.reset();
     });
 
     // Borrar el historial con confirmación
     document.getElementById('clearHistory').addEventListener('click', function() {
       if (confirm('¿Estás seguro de borrar el historial?')) {
-        history.length = 0; // Vacía el array
+        history = [];
+        saveHistory();
         updateUI();
       }
     });
 
-    // Descargar el historial en Excel (funcionalidad pendiente)
+    // Descargar el historial en Excel
     document.getElementById('downloadExcel').addEventListener('click', function() {
-      // Aquí podrías integrar una librería como SheetJS (xlsx) para generar y descargar el archivo Excel.
-      alert('Funcionalidad de descarga en Excel pendiente de implementación.');
+      // 1. Crea un libro de Excel en blanco
+      var wb = XLSX.utils.book_new();
+      // 2. Crea una tabla con una fila de títulos
+      var ws_data = [["Cliente", "Importe", "Tipo de Pago"]];
+      // 3. Agrega cada registro del historial a la tabla
+      history.forEach(function(entry) {
+        ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
+      });
+      // 4. Convierte esa tabla en una hoja que Excel entienda
+      var ws = XLSX.utils.aoa_to_sheet(ws_data);
+      // 5. Añade esa hoja al libro y le pone el nombre "Historial"
+      XLSX.utils.book_append_sheet(wb, ws, "Historial");
+      // 6. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
+      XLSX.writeFile(wb, 'historial.xlsx');
     });
   </script>
-<script>
-  // Cuando se haga clic en el botón con id "downloadExcel"
-  document.getElementById('downloadExcel').addEventListener('click', function() {
-    // 1. Crea un libro de Excel en blanco
-    var wb = XLSX.utils.book_new();
-    
-    // 2. Crea una tabla con una fila de títulos
-    var ws_data = [["Cliente", "Importe", "Tipo de Pago"]];
-    
-    // 3. Agrega cada registro del "history" a la tabla
-    history.forEach(function(entry) {
-      ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
-    });
-    
-    // 4. Convierte esa tabla en una hoja que Excel entienda
-    var ws = XLSX.utils.aoa_to_sheet(ws_data);
-    
-    // 5. Añade esa hoja al libro y le pone el nombre "Historial"
-    XLSX.utils.book_append_sheet(wb, ws, "Historial");
-    
-    // 6. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
-    XLSX.writeFile(wb, 'historial.xlsx');
-  });
-</script>
 </body>
 </html>
+
