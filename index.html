@@ -56,6 +56,13 @@
     .payment-method label {
       cursor: pointer;
     }
+    /* Regla para resaltar el botón "Agregar" */
+    form button[type="submit"] {
+      background-color: #008CBA; /* azul vibrante */
+      color: #fff;
+      border: 1px solid #fff;
+      border-radius: 5px;
+    }
     /* Tabla de historial */
     table {
       width: 100%;
@@ -251,4 +258,15 @@
       ws_data.push([]);
       ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
       ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
-      ws_data.push(["Total General",
+      ws_data.push(["Total General", totalGeneral.toFixed(2), ""]);
+      // 6. Convierte esa tabla en una hoja que Excel entienda
+      var ws = XLSX.utils.aoa_to_sheet(ws_data);
+      // 7. Añade esa hoja al libro y le pone el nombre "Historial"
+      XLSX.utils.book_append_sheet(wb, ws, "Historial");
+      // 8. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
+      XLSX.writeFile(wb, 'historial.xlsx');
+    });
+  </script>
+</body>
+</html>
+
