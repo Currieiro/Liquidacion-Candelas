@@ -14,15 +14,15 @@
     /* Estilos generales */
     body {
       font-family: Arial, sans-serif;
-      background: #fff;
-      color: #000;
+      background: #6f4e37; /* marrón café */
+      color: #fff;
       margin: 0;
       padding: 20px;
     }
     header {
       text-align: center;
       padding: 20px;
-      background-color: #FFA500;
+      background-color: #FFA500; /* naranja */
       color: #fff;
     }
     .container {
@@ -39,8 +39,10 @@
     form input, form button {
       padding: 10px;
       font-size: 1em;
-      border: 1px solid #000;
+      border: 1px solid #fff;
       border-radius: 5px;
+      background: transparent;
+      color: #fff;
     }
     form input[type="text"],
     form input[type="number"] {
@@ -51,6 +53,9 @@
       align-items: center;
       gap: 10px;
     }
+    .payment-method label {
+      cursor: pointer;
+    }
     /* Tabla de historial */
     table {
       width: 100%;
@@ -58,7 +63,7 @@
       margin-bottom: 20px;
     }
     table, th, td {
-      border: 1px solid #000;
+      border: 1px solid #fff;
     }
     th, td {
       padding: 10px;
@@ -69,9 +74,12 @@
       display: flex;
       justify-content: space-around;
       padding: 10px;
-      background-color: #f0f0f0;
-      border: 1px solid #000;
+      background-color: #f0a500;
+      border: 1px solid #fff;
       border-radius: 5px;
+    }
+    .summary div {
+      color: #fff;
     }
     /* Botones de acciones */
     .buttons {
@@ -148,6 +156,9 @@
       <div>
         <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
       </div>
+      <div>
+        <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
+      </div>
     </div>
     <!-- Botones para descargar o borrar historial -->
     <div class="buttons">
@@ -187,6 +198,7 @@
       });
       document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
       document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
+      document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
     }
 
     // Inicializar la UI con datos persistentes
@@ -214,7 +226,7 @@
       }
     });
 
-    // Descargar el historial en Excel
+    // Descargar el historial en Excel incluyendo totales
     document.getElementById('downloadExcel').addEventListener('click', function() {
       // 1. Crea un libro de Excel en blanco
       var wb = XLSX.utils.book_new();
@@ -224,14 +236,19 @@
       history.forEach(function(entry) {
         ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
       });
-      // 4. Convierte esa tabla en una hoja que Excel entienda
-      var ws = XLSX.utils.aoa_to_sheet(ws_data);
-      // 5. Añade esa hoja al libro y le pone el nombre "Historial"
-      XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      // 6. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
-      XLSX.writeFile(wb, 'historial.xlsx');
-    });
-  </script>
-</body>
-</html>
-
+      // 4. Calcula los totales
+      let totalEfectivo = 0;
+      let totalTarjeta = 0;
+      history.forEach(function(entry) {
+        if (entry.type === "Efectivo") {
+          totalEfectivo += entry.amount;
+        } else {
+          totalTarjeta += entry.amount;
+        }
+      });
+      let totalGeneral = totalEfectivo + totalTarjeta;
+      // 5. Añade una fila vacía y luego los totales
+      ws_data.push([]);
+      ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
+      ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
+      ws_data.push(["Total General",
