@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Liquidación Candelas</title>
+  <title>Liquidación diaria</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFA500">
   <!-- Para que se comporte como app en iPhone -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Liquidación Candelas">
+  <meta name="apple-mobile-web-app-title" content="Liquidación diaria">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     /* Estilos generales */
@@ -28,6 +28,21 @@
     .container {
       max-width: 800px;
       margin: 0 auto;
+    }
+    /* Estilos para el campo de fecha */
+    .date-input {
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .date-input input {
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #fff;
+      border-radius: 5px;
+      background: transparent;
+      color: #fff;
     }
     /* Formulario */
     form {
@@ -125,9 +140,14 @@
 </head>
 <body>
   <header>
-    <h1>Liquidación Candelas</h1>
+    <h1>Liquidación diaria</h1>
   </header>
   <div class="container">
+    <!-- Campo para la fecha -->
+    <div class="date-input">
+      <label for="reportDate">Fecha (DD/MM/AAAA):</label>
+      <input type="text" id="reportDate" placeholder="DD/MM/AAAA">
+    </div>
     <!-- Formulario para ingresar los datos -->
     <form id="paymentForm">
       <input type="text" id="clientName" placeholder="Nombre del cliente" required>
@@ -233,8 +253,13 @@
       }
     });
 
-    // Descargar el historial en Excel incluyendo totales
+    // Descargar el historial en Excel incluyendo totales y usando la fecha proporcionada
     document.getElementById('downloadExcel').addEventListener('click', function() {
+      const reportDate = document.getElementById('reportDate').value.trim();
+      if (!reportDate) {
+        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
+        return;
+      }
       // 1. Crea un libro de Excel en blanco
       var wb = XLSX.utils.book_new();
       // 2. Crea una tabla con una fila de títulos
@@ -263,10 +288,10 @@
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
       // 7. Añade esa hoja al libro y le pone el nombre "Historial"
       XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      // 8. Crea el archivo Excel y lo descarga (se llamará "historial.xlsx")
-      XLSX.writeFile(wb, 'historial.xlsx');
+      // 8. Crea el archivo Excel y lo descarga con el nombre "liquidación_<fecha>.xlsx"
+      var safeDate = reportDate.replace(/\//g, "-");
+      XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
   </script>
 </body>
 </html>
-
