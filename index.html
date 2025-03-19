@@ -43,6 +43,7 @@
       border-radius: 5px;
       background: transparent;
       color: #fff;
+      width: 150px;
     }
     /* Formulario */
     form {
@@ -146,7 +147,7 @@
     <!-- Campo para la fecha -->
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
-      <input type="text" id="reportDate" placeholder="DD/MM/AAAA">
+      <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
     </div>
     <!-- Formulario para ingresar los datos -->
     <form id="paymentForm">
@@ -244,19 +245,21 @@
       this.reset();
     });
 
-    // Borrar el historial con confirmación
+    // Borrar el historial con confirmación (y limpiar la fecha)
     document.getElementById('clearHistory').addEventListener('click', function() {
       if (confirm('¿Estás seguro de borrar el historial?')) {
         history = [];
         saveHistory();
         updateUI();
+        // Limpiar el campo de fecha
+        document.getElementById('reportDate').value = '';
       }
     });
 
     // Descargar el historial en Excel incluyendo totales y usando la fecha proporcionada
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
-      if (!reportDate) {
+      if (!reportDate || reportDate.length < 10) {
         alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
         return;
       }
@@ -291,6 +294,19 @@
       // 8. Crea el archivo Excel y lo descarga con el nombre "liquidación_<fecha>.xlsx"
       var safeDate = reportDate.replace(/\//g, "-");
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
+    });
+
+    // Evento para formatear la fecha mientras se escribe (input mask sencillo)
+    document.getElementById('reportDate').addEventListener('input', function(e) {
+      // Remover cualquier carácter que no sea dígito
+      let input = this.value.replace(/\D/g, '');
+      // Insertar la primera barra después de 2 dígitos
+      if (input.length > 2 && input.length <= 4) {
+        input = input.slice(0,2) + '/' + input.slice(2);
+      } else if (input.length > 4) {
+        input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
+      }
+      this.value = input;
     });
   </script>
 </body>
