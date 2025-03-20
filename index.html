@@ -256,22 +256,22 @@
       }
     });
 
-    // Descargar el historial en Excel incluyendo totales y usando la fecha proporcionada
+    // Descargar el historial en Excel con el mismo formato de vista
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
       if (!reportDate || reportDate.length < 10) {
         alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
         return;
       }
-      // 1. Crea un libro de Excel en blanco
+      // 1. Crear un libro de Excel en blanco
       var wb = XLSX.utils.book_new();
-      // 2. Crea una tabla con una fila de títulos
+      // 2. Crear una tabla con la fila de títulos
       var ws_data = [["Cliente", "Importe", "Tipo de Pago"]];
-      // 3. Agrega cada registro del historial a la tabla
+      // 3. Agregar cada registro del historial a la tabla
       history.forEach(function(entry) {
         ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
       });
-      // 4. Calcula los totales
+      // 4. Calcular los totales
       let totalEfectivo = 0;
       let totalTarjeta = 0;
       history.forEach(function(entry) {
@@ -282,25 +282,29 @@
         }
       });
       let totalGeneral = totalEfectivo + totalTarjeta;
-      // 5. Añade una fila vacía y luego los totales
+      // 5. Añadir una fila vacía y luego las filas de totales
       ws_data.push([]);
       ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
       ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
       ws_data.push(["Total General", totalGeneral.toFixed(2), ""]);
-      // 6. Convierte esa tabla en una hoja que Excel entienda
+      // 6. Convertir la tabla en una hoja que Excel entienda
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
-      // 7. Añade esa hoja al libro y le pone el nombre "Historial"
+      // 7. Ajustar anchos de columna para que se parezca a la vista en pantalla
+      ws['!cols'] = [
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 }
+      ];
+      // 8. Añadir la hoja al libro
       XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      // 8. Crea el archivo Excel y lo descarga con el nombre "liquidación_<fecha>.xlsx"
+      // 9. Crear el archivo Excel y descargarlo con el nombre "liquidación_<fecha>.xlsx"
       var safeDate = reportDate.replace(/\//g, "-");
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
 
-    // Evento para formatear la fecha mientras se escribe (input mask sencillo)
+    // Input mask sencillo para formatear la fecha mientras se escribe (DD/MM/AAAA)
     document.getElementById('reportDate').addEventListener('input', function(e) {
-      // Remover cualquier carácter que no sea dígito
       let input = this.value.replace(/\D/g, '');
-      // Insertar la primera barra después de 2 dígitos
       if (input.length > 2 && input.length <= 4) {
         input = input.slice(0,2) + '/' + input.slice(2);
       } else if (input.length > 4) {
