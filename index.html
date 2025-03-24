@@ -1,3 +1,4 @@
+<!-- 👇 Empieza el HTML completo -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -5,16 +6,14 @@
   <title>Liquidación diaria</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFA500">
-  <!-- Para que se comporte como app en iPhone -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Liquidación diaria">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* Estilos generales */
     body {
       font-family: Arial, sans-serif;
-      background: #6f4e37; /* marrón café */
+      background: #6f4e37;
       color: #fff;
       margin: 0;
       padding: 20px;
@@ -22,14 +21,13 @@
     header {
       text-align: center;
       padding: 20px;
-      background-color: #FFA500; /* naranja */
+      background-color: #FFA500;
       color: #fff;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
     }
-    /* Estilos para el campo de fecha */
     .date-input {
       margin-bottom: 20px;
       display: flex;
@@ -45,7 +43,6 @@
       color: #fff;
       width: 150px;
     }
-    /* Formulario */
     form {
       display: flex;
       flex-wrap: wrap;
@@ -60,8 +57,7 @@
       background: transparent;
       color: #fff;
     }
-    form input[type="text"],
-    form input[type="number"] {
+    form input[type="text"], form input[type="number"] {
       flex: 1 1 200px;
     }
     .payment-method {
@@ -72,14 +68,12 @@
     .payment-method label {
       cursor: pointer;
     }
-    /* Resaltar el botón "Agregar" */
     form button[type="submit"] {
-      background-color: #008CBA; /* azul vibrante */
+      background-color: #008CBA;
       color: #fff;
       border: 1px solid #fff;
       border-radius: 5px;
     }
-    /* Tabla de historial */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -92,7 +86,6 @@
       padding: 10px;
       text-align: center;
     }
-    /* Resumen de totales */
     .summary {
       display: flex;
       justify-content: space-around;
@@ -103,34 +96,32 @@
     }
     .summary div {
       color: #fff;
-      cursor: pointer;
       position: relative;
+      cursor: pointer;
     }
-    /* Desplegable de desglose */
     .dropdown {
       display: none;
       position: absolute;
-      top: 110%;
+      top: 100%;
       left: 0;
       background: #fff;
       color: #000;
-      border: 1px solid #fff;
+      border: 1px solid #ccc;
       border-radius: 5px;
       padding: 5px;
       z-index: 10;
       max-height: 200px;
       overflow-y: auto;
-      min-width: 150px;
+      min-width: 180px;
     }
     .dropdown p {
       margin: 0;
       padding: 3px 0;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #eee;
     }
     .dropdown p:last-child {
       border-bottom: none;
     }
-    /* Botones de acciones */
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -150,46 +141,27 @@
       opacity: 0.8;
     }
   </style>
-  <!-- Registro del Service Worker (si lo deseas conservar) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => {
-            console.log('Service Worker registrado:', registration.scope);
-          })
-          .catch(error => {
-            console.log('Error al registrar el Service Worker:', error);
-          });
-      });
-    }
-  </script>
 </head>
 <body>
   <header>
     <h1>Liquidación diaria</h1>
   </header>
   <div class="container">
-    <!-- Campo para la fecha -->
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
     </div>
-    <!-- Formulario para ingresar los datos -->
+
     <form id="paymentForm">
       <input type="text" id="clientName" placeholder="Nombre del cliente" required>
       <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
       <div class="payment-method">
-        <label>
-          <input type="radio" name="paymentType" value="Efectivo" required> Efectivo
-        </label>
-        <label>
-          <input type="radio" name="paymentType" value="Tarjeta"> Tarjeta
-        </label>
+        <label><input type="radio" name="paymentType" value="Efectivo" required> Efectivo</label>
+        <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
       </div>
       <button type="submit">Agregar</button>
     </form>
-    <!-- Tabla de historial de cobros -->
+
     <table id="historyTable">
       <thead>
         <tr>
@@ -198,51 +170,42 @@
           <th>Tipo de Pago</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Filas generadas dinámicamente -->
-      </tbody>
+      <tbody></tbody>
     </table>
-    <!-- Sección de resumen -->
+
     <div class="summary">
       <div id="efectivoContainer">
         <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
-        <!-- Desplegable para desglose de efectivo -->
-        <div id="efectivoDropdown" class="dropdown"></div>
+        <div class="dropdown" id="efectivoDropdown"></div>
       </div>
       <div id="tarjetaContainer">
         <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
-        <!-- Desplegable para desglose de tarjeta -->
-        <div id="tarjetaDropdown" class="dropdown"></div>
+        <div class="dropdown" id="tarjetaDropdown"></div>
       </div>
       <div>
         <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
       </div>
     </div>
-    <!-- Botones para descargar o borrar historial -->
+
     <div class="buttons">
       <button id="downloadExcel">Descargar Excel</button>
       <button id="clearHistory">Borrar Historial</button>
     </div>
   </div>
-  <!-- Scripts para manejar la lógica de la aplicación -->
+
   <script>
-    // Cargar historial desde localStorage o iniciar con array vacío
     let history = JSON.parse(localStorage.getItem('history')) || [];
 
-    // Función para guardar el historial en localStorage
     function saveHistory() {
       localStorage.setItem('history', JSON.stringify(history));
     }
 
-    // Función para actualizar la tabla, totales y desglose
     function updateUI() {
-      const tableBody = document.getElementById('historyTable').querySelector('tbody');
-      tableBody.innerHTML = '';
+      const tbody = document.querySelector('#historyTable tbody');
+      tbody.innerHTML = '';
       let totalEfectivo = 0;
       let totalTarjeta = 0;
-      let efectivoDesglose = '';
-      let tarjetaDesglose = '';
-      
+
       history.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -250,27 +213,18 @@
           <td>${entry.amount.toFixed(2)}</td>
           <td>${entry.type}</td>
         `;
-        tableBody.appendChild(row);
-        if (entry.type === 'Efectivo') {
-          totalEfectivo += entry.amount;
-          efectivoDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
-        } else {
-          totalTarjeta += entry.amount;
-          tarjetaDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
-        }
+        tbody.appendChild(row);
+        if (entry.type === 'Efectivo') totalEfectivo += entry.amount;
+        else totalTarjeta += entry.amount;
       });
+
       document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
       document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
       document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
-      
-      document.getElementById('efectivoDropdown').innerHTML = efectivoDesglose || '<p>Sin registros</p>';
-      document.getElementById('tarjetaDropdown').innerHTML = tarjetaDesglose || '<p>Sin registros</p>';
     }
 
-    // Inicializar la UI con datos persistentes
     updateUI();
 
-    // Manejo del envío del formulario
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const client = document.getElementById('clientName').value;
@@ -282,7 +236,6 @@
       this.reset();
     });
 
-    // Borrar el historial con confirmación (y limpiar la fecha)
     document.getElementById('clearHistory').addEventListener('click', function() {
       if (confirm('¿Estás seguro de borrar el historial?')) {
         history = [];
@@ -292,64 +245,64 @@
       }
     });
 
-    // Descargar el historial en Excel con vista similar a la pantalla
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
       if (!reportDate || reportDate.length < 10) {
-        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
+        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA.');
         return;
       }
       let totalEfectivo = 0;
       let totalTarjeta = 0;
-      history.forEach(function(entry) {
-        if (entry.type === "Efectivo") {
-          totalEfectivo += entry.amount;
-        } else {
-          totalTarjeta += entry.amount;
-        }
-      });
-      let totalGeneral = totalEfectivo + totalTarjeta;
 
-      let ws_data = [];
-      ws_data.push(["Liquidación diaria"]);
-      ws_data.push(["Fecha: " + reportDate]);
-      ws_data.push([]);
-      ws_data.push(["Cliente", "Importe", "Tipo de Pago"]);
-      history.forEach(function(entry) {
+      let ws_data = [["Liquidación diaria"], ["Fecha: " + reportDate], [], ["Cliente", "Importe", "Tipo de Pago"]];
+      history.forEach(entry => {
         ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
+        if (entry.type === "Efectivo") totalEfectivo += entry.amount;
+        else totalTarjeta += entry.amount;
       });
+
       ws_data.push([]);
       ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
       ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
-      ws_data.push(["Total General", totalGeneral.toFixed(2), ""]);
+      ws_data.push(["Total General", (totalEfectivo + totalTarjeta).toFixed(2), ""]);
 
-      var ws = XLSX.utils.aoa_to_sheet(ws_data);
-      ws['!cols'] = [
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 15 }
-      ];
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }
-      ];
-      var wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      ws['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }];
+      const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      var safeDate = reportDate.replace(/\//g, "-");
+      const safeDate = reportDate.replace(/\//g, "-");
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
 
-    // Toggle para mostrar/ocultar el desglose al hacer clic en el contenedor
     document.getElementById('efectivoContainer').addEventListener('click', function() {
       const dd = document.getElementById('efectivoDropdown');
-      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
-    });
-    document.getElementById('tarjetaContainer').addEventListener('click', function() {
-      const dd = document.getElementById('tarjetaDropdown');
+      dd.innerHTML = '';
+      let encontrados = false;
+      history.forEach(entry => {
+        if (entry.type === 'Efectivo') {
+          dd.innerHTML += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
+          encontrados = true;
+        }
+      });
+      if (!encontrados) dd.innerHTML = '<p>Sin registros</p>';
       dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
     });
 
-    // Input mask para formatear la fecha (DD/MM/AAAA)
+    document.getElementById('tarjetaContainer').addEventListener('click', function() {
+      const dd = document.getElementById('tarjetaDropdown');
+      dd.innerHTML = '';
+      let encontrados = false;
+      history.forEach(entry => {
+        if (entry.type === 'Tarjeta') {
+          dd.innerHTML += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
+          encontrados = true;
+        }
+      });
+      if (!encontrados) dd.innerHTML = '<p>Sin registros</p>';
+      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    });
+
     document.getElementById('reportDate').addEventListener('input', function(e) {
       let input = this.value.replace(/\D/g, '');
       if (input.length > 2 && input.length <= 4) {
