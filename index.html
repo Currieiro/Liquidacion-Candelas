@@ -1,32 +1,27 @@
-<!-- 👇 Empieza el HTML completo -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Liquidación diaria</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#FFA500">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Liquidación diaria">
+  <title>Generador de Liquidación - Aplicación B</title>
+  <!-- Se utiliza SheetJS para generar el Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #6f4e37;
-      color: #fff;
-      margin: 0;
+      background: #f2f2f2;
       padding: 20px;
     }
-    header {
+    h1 {
       text-align: center;
-      padding: 20px;
-      background-color: #FFA500;
-      color: #fff;
+      color: #333;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
     .date-input {
       margin-bottom: 20px;
@@ -37,273 +32,177 @@
     .date-input input {
       padding: 10px;
       font-size: 1em;
-      border: 1px solid #fff;
+      border: 1px solid #ccc;
       border-radius: 5px;
-      background: transparent;
-      color: #fff;
       width: 150px;
     }
-    form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .section {
       margin-bottom: 20px;
     }
-    form input, form button {
-      padding: 10px;
-      font-size: 1em;
-      border: 1px solid #fff;
-      border-radius: 5px;
-      background: transparent;
-      color: #fff;
-    }
-    form input[type="text"], form input[type="number"] {
-      flex: 1 1 200px;
-    }
-    .payment-method {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .payment-method label {
-      cursor: pointer;
-    }
-    form button[type="submit"] {
-      background-color: #008CBA;
-      color: #fff;
-      border: 1px solid #fff;
-      border-radius: 5px;
+    .section h2 {
+      margin-bottom: 10px;
+      color: #555;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     table, th, td {
-      border: 1px solid #fff;
+      border: 1px solid #ccc;
     }
     th, td {
-      padding: 10px;
-      text-align: center;
+      padding: 8px;
+      text-align: left;
     }
-    .summary {
-      display: flex;
-      justify-content: space-around;
-      padding: 10px;
-      background-color: #f0a500;
-      border: 1px solid #fff;
-      border-radius: 5px;
-    }
-    .summary div {
-      color: #fff;
-      position: relative;
-      cursor: pointer;
-    }
-    .dropdown {
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      background: #fff;
-      color: #000;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+    input[type="text"], input[type="number"] {
+      width: 90%;
       padding: 5px;
-      z-index: 10;
-      max-height: 200px;
-      overflow-y: auto;
-      min-width: 180px;
     }
-    .dropdown p {
-      margin: 0;
-      padding: 3px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .dropdown p:last-child {
-      border-bottom: none;
-    }
-    .buttons {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-    }
-    .buttons button {
-      flex: 1;
-      margin: 5px;
-      padding: 10px;
-      background-color: #FFA500;
-      border: none;
+    button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background: #008CBA;
       color: #fff;
+      border: none;
       border-radius: 5px;
       cursor: pointer;
     }
-    .buttons button:hover {
+    button:hover {
       opacity: 0.8;
     }
+    /* ▼ ▼ ▼ NUEVO: Estilos para los botones desplegables ▼ ▼ ▼ */
+    .dropdown-container {
+      margin: 10px 0;
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-container button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background: #008CBA;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .dropdown-container button:hover {
+      opacity: 0.8;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background: #fff;
+      color: #000;
+      min-width: 160px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+    .dropdown-content a {
+      color: #000;
+      padding: 10px 15px;
+      text-decoration: none;
+      display: block;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
+    }
+    /* ▲ ▲ ▲ FIN de nuevos estilos ▲ ▲ ▲ */
   </style>
 </head>
 <body>
-  <header>
-    <h1>Liquidación diaria</h1>
-  </header>
+  <h1>Generador de Liquidación - Aplicación B</h1>
   <div class="container">
+    <!-- Campo para ingresar la fecha -->
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
     </div>
-
-    <form id="paymentForm">
-      <input type="text" id="clientName" placeholder="Nombre del cliente" required>
-      <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
-      <div class="payment-method">
-        <label><input type="radio" name="paymentType" value="Efectivo" required> Efectivo</label>
-        <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
-      </div>
-      <button type="submit">Agregar</button>
-    </form>
-
-    <table id="historyTable">
-      <thead>
+    <!-- Sección para liquidaciones en Efectivo -->
+    <div class="section">
+      <h2>Efectivo (máximo 5 liquidaciones)</h2>
+      <table>
         <tr>
           <th>Cliente</th>
           <th>Importe</th>
-          <th>Tipo de Pago</th>
         </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div class="summary">
-      <div id="efectivoContainer">
-        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
-        <div class="dropdown" id="efectivoDropdown"></div>
-      </div>
-      <div id="tarjetaContainer">
-        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
-        <div class="dropdown" id="tarjetaDropdown"></div>
-      </div>
-      <div>
-        <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_0"></td>
+          <td><input type="number" id="efectivo_importe_0" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_1"></td>
+          <td><input type="number" id="efectivo_importe_1" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_2"></td>
+          <td><input type="number" id="efectivo_importe_2" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_3"></td>
+          <td><input type="number" id="efectivo_importe_3" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_4"></td>
+          <td><input type="number" id="efectivo_importe_4" step="0.01"></td>
+        </tr>
+      </table>
+    </div>
+    <!-- Sección para liquidaciones con Tarjeta -->
+    <div class="section">
+      <h2>Tarjeta (máximo 5 liquidaciones)</h2>
+      <table>
+        <tr>
+          <th>Cliente</th>
+          <th>Importe</th>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_0"></td>
+          <td><input type="number" id="tarjeta_importe_0" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_1"></td>
+          <td><input type="number" id="tarjeta_importe_1" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_2"></td>
+          <td><input type="number" id="tarjeta_importe_2" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_3"></td>
+          <td><input type="number" id="tarjeta_importe_3" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_4"></td>
+          <td><input type="number" id="tarjeta_importe_4" step="0.01"></td>
+        </tr>
+      </table>
+    </div>
+    <!-- ▼▼ NUEVO: Botones desplegables para Totales ▼▼ -->
+    <div class="dropdown-container">
+      <button id="totalEfectivoBtn">Total efectivo</button>
+      <div id="totalEfectivoDropdown" class="dropdown-content">
+        <a href="#">Efectivo</a>
+        <a href="#">Cheque</a>
+        <a href="#">Transferencia</a>
       </div>
     </div>
-
-    <div class="buttons">
-      <button id="downloadExcel">Descargar Excel</button>
-      <button id="clearHistory">Borrar Historial</button>
+    <div class="dropdown-container">
+      <button id="totalTarjetaBtn">Total tarjeta</button>
+      <div id="totalTarjetaDropdown" class="dropdown-content">
+        <a href="#">Visa</a>
+        <a href="#">MasterCard</a>
+        <a href="#">American Express</a>
+      </div>
     </div>
+    <!-- ▲▲ FIN de nuevos botones ▲▲ -->
+    <!-- Botón para generar y descargar el archivo Excel -->
+    <button id="generateExcel">Generar Excel</button>
   </div>
-
+  
   <script>
-    let history = JSON.parse(localStorage.getItem('history')) || [];
-
-    function saveHistory() {
-      localStorage.setItem('history', JSON.stringify(history));
-    }
-
-    function updateUI() {
-      const tbody = document.querySelector('#historyTable tbody');
-      tbody.innerHTML = '';
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
-
-      history.forEach(entry => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${entry.client}</td>
-          <td>${entry.amount.toFixed(2)}</td>
-          <td>${entry.type}</td>
-        `;
-        tbody.appendChild(row);
-        if (entry.type === 'Efectivo') totalEfectivo += entry.amount;
-        else totalTarjeta += entry.amount;
-      });
-
-      document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
-      document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
-      document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
-    }
-
-    updateUI();
-
-    document.getElementById('paymentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const client = document.getElementById('clientName').value;
-      const amount = parseFloat(document.getElementById('amount').value);
-      const type = document.querySelector('input[name="paymentType"]:checked').value;
-      history.push({ client, amount, type });
-      saveHistory();
-      updateUI();
-      this.reset();
-    });
-
-    document.getElementById('clearHistory').addEventListener('click', function() {
-      if (confirm('¿Estás seguro de borrar el historial?')) {
-        history = [];
-        saveHistory();
-        updateUI();
-        document.getElementById('reportDate').value = '';
-      }
-    });
-
-    document.getElementById('downloadExcel').addEventListener('click', function() {
-      const reportDate = document.getElementById('reportDate').value.trim();
-      if (!reportDate || reportDate.length < 10) {
-        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA.');
-        return;
-      }
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
-
-      let ws_data = [["Liquidación diaria"], ["Fecha: " + reportDate], [], ["Cliente", "Importe", "Tipo de Pago"]];
-      history.forEach(entry => {
-        ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
-        if (entry.type === "Efectivo") totalEfectivo += entry.amount;
-        else totalTarjeta += entry.amount;
-      });
-
-      ws_data.push([]);
-      ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
-      ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
-      ws_data.push(["Total General", (totalEfectivo + totalTarjeta).toFixed(2), ""]);
-
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      ws['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
-      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }];
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      const safeDate = reportDate.replace(/\//g, "-");
-      XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
-    });
-
-    document.getElementById('efectivoContainer').addEventListener('click', function() {
-      const dd = document.getElementById('efectivoDropdown');
-      dd.innerHTML = '';
-      let encontrados = false;
-      history.forEach(entry => {
-        if (entry.type === 'Efectivo') {
-          dd.innerHTML += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
-          encontrados = true;
-        }
-      });
-      if (!encontrados) dd.innerHTML = '<p>Sin registros</p>';
-      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
-    });
-
-    document.getElementById('tarjetaContainer').addEventListener('click', function() {
-      const dd = document.getElementById('tarjetaDropdown');
-      dd.innerHTML = '';
-      let encontrados = false;
-      history.forEach(entry => {
-        if (entry.type === 'Tarjeta') {
-          dd.innerHTML += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
-          encontrados = true;
-        }
-      });
-      if (!encontrados) dd.innerHTML = '<p>Sin registros</p>';
-      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
-    });
-
-    document.getElementById('reportDate').addEventListener('input', function(e) {
+    // Input mask sencillo para formatear la fecha (DD/MM/AAAA)
+    document.getElementById('reportDate').addEventListener('input', function() {
       let input = this.value.replace(/\D/g, '');
       if (input.length > 2 && input.length <= 4) {
         input = input.slice(0,2) + '/' + input.slice(2);
@@ -311,6 +210,105 @@
         input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
       }
       this.value = input;
+    });
+    
+    // Función para generar el Excel con la plantilla deseada
+    document.getElementById('generateExcel').addEventListener('click', function() {
+      const reportDate = document.getElementById('reportDate').value.trim();
+      if (!reportDate || reportDate.length < 10) {
+        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA.');
+        return;
+      }
+      
+      // Recoger datos de Efectivo (máximo 5 filas)
+      let efectivoData = [];
+      for (let i = 0; i < 5; i++) {
+        const client = document.getElementById('efectivo_cliente_' + i).value.trim();
+        const amount = document.getElementById('efectivo_importe_' + i).value;
+        if (client !== "" && amount !== "") {
+          efectivoData.push({ client, amount: parseFloat(amount) });
+        } else {
+          efectivoData.push(null);
+        }
+      }
+      
+      // Recoger datos de Tarjeta (máximo 5 filas)
+      let tarjetaData = [];
+      for (let i = 0; i < 5; i++) {
+        const client = document.getElementById('tarjeta_cliente_' + i).value.trim();
+        const amount = document.getElementById('tarjeta_importe_' + i).value;
+        if (client !== "" && amount !== "") {
+          tarjetaData.push({ client, amount: parseFloat(amount) });
+        } else {
+          tarjetaData.push(null);
+        }
+      }
+      
+      // Construir la estructura de la hoja Excel
+      // Se utilizarán 5 columnas: A y B para efectivo, C como separador, D y E para tarjeta.
+      let ws_data = [];
+      ws_data.push(["Liquidación diaria"]);           // Fila 0: Título
+      ws_data.push(["Fecha: " + reportDate]);           // Fila 1: Fecha
+      ws_data.push([]);                                 // Fila 2: Vacía
+      ws_data.push(["OBSERVACIONES:", "", "", "Tarjeta", ""]); // Fila 3: Encabezados
+      
+      // Generar 5 filas de datos
+      for (let i = 0; i < 5; i++) {
+        let efectivoRow = efectivoData[i] ? [efectivoData[i].client, efectivoData[i].amount.toFixed(2)] : ["", ""];
+        let tarjetaRow = tarjetaData[i] ? [tarjetaData[i].client, tarjetaData[i].amount.toFixed(2)] : ["", ""];
+        // Fila: columnas A y B (efectivo), columna C vacía, columnas D y E (tarjeta)
+        ws_data.push([...efectivoRow, "", ...tarjetaRow]);
+      }
+      
+      // Crear la hoja de Excel a partir del array de datos
+      var ws = XLSX.utils.aoa_to_sheet(ws_data);
+      
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 5  },
+        { wch: 25 },
+        { wch: 15 }
+      ];
+      
+      // Fusionar celdas para el encabezado
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }
+      ];
+      
+      // Ajustar fuente en celdas de datos (filas 4 a 8 en columnas A, B, D y E)
+      function setCellFont(ws, cellRef, fontSize) {
+        if (ws[cellRef]) {
+          if (!ws[cellRef].s) ws[cellRef].s = {};
+          ws[cellRef].s.font = { sz: fontSize };
+        }
+      }
+      function cellAddress(r, c) {
+        return XLSX.utils.encode_cell({ r: r, c: c });
+      }
+      for (let r = 4; r <= 8; r++) {
+        for (let c of [0, 1, 3, 4]) {
+          setCellFont(ws, cellAddress(r, c), 12);
+        }
+      }
+      
+      // Crear el libro y descargar el Excel
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Liquidación");
+      var safeDate = reportDate.replace(/\//g, "-");
+      XLSX.writeFile(wb, 'liquidacion_' + safeDate + '.xlsx');
+    });
+    
+    // Eventos para desplegar/ocultar los dropdowns de Totales
+    document.getElementById('totalEfectivoBtn').addEventListener('click', function() {
+      const dd = document.getElementById('totalEfectivoDropdown');
+      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+    });
+    document.getElementById('totalTarjetaBtn').addEventListener('click', function() {
+      const dd = document.getElementById('totalTarjetaDropdown');
+      dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
     });
   </script>
 </body>
