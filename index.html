@@ -2,281 +2,230 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Liquidación diaria</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#FFA500">
-  <!-- Para que se comporte como app en iPhone -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Liquidación diaria">
+  <title>Generador de Liquidación - Aplicación B</title>
+  <!-- Se utiliza SheetJS para generar el Excel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* Estilos generales */
     body {
       font-family: Arial, sans-serif;
-      background: #6f4e37; /* marrón café */
-      color: #fff;
-      margin: 0;
+      background: #f2f2f2;
       padding: 20px;
     }
-    header {
+    h1 {
       text-align: center;
-      padding: 20px;
-      background-color: #FFA500; /* naranja */
-      color: #fff;
+      color: #333;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
-    }
-    /* Formulario */
-    form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    form input, form button {
-      padding: 10px;
-      font-size: 1em;
-      border: 1px solid #fff;
+      background: #fff;
+      padding: 20px;
       border-radius: 5px;
-      background: transparent;
-      color: #fff;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
     }
-    form input[type="text"],
-    form input[type="number"] {
-      flex: 1 1 200px;
-    }
-    .payment-method {
+    .date-input {
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
-    .payment-method label {
-      cursor: pointer;
-    }
-    /* Botón "Agregar" resaltado */
-    form button[type="submit"] {
-      background-color: #008CBA; /* azul vibrante */
-      color: #fff;
-      border: 1px solid #fff;
+    .date-input input {
+      padding: 10px;
+      font-size: 1em;
+      border: 1px solid #ccc;
       border-radius: 5px;
+      width: 150px;
     }
-    /* Tabla de historial */
+    .section {
+      margin-bottom: 20px;
+    }
+    .section h2 {
+      margin-bottom: 10px;
+      color: #555;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
     table, th, td {
-      border: 1px solid #fff;
+      border: 1px solid #ccc;
     }
     th, td {
-      padding: 10px;
-      text-align: center;
+      padding: 8px;
+      text-align: left;
     }
-    /* Sección de resumen */
-    .summary {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      justify-content: space-around;
-      padding: 10px;
-      background-color: #f0a500;
-      border: 1px solid #fff;
-      border-radius: 5px;
+    input[type="text"], input[type="number"] {
+      width: 90%;
+      padding: 5px;
     }
-    .summary > div {
-      flex: 1;
-      min-width: 200px;
-    }
-    /* Estilo para los botones que muestran detalles */
-    .summary button {
-      background: none;
-      border: none;
-      color: #fff;
+    button {
+      padding: 10px 20px;
       font-size: 1em;
+      background: #008CBA;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
-      padding: 0;
+    }
+    button:hover {
+      opacity: 0.8;
+    }
+    /* Estilos para el dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+      margin-top: 10px;
     }
     .dropdown-content {
       display: none;
-      background: #fff;
-      color: #000;
-      padding: 10px;
-      border: 1px solid #ccc;
-      margin-top: 5px;
+      position: absolute;
+      background: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+    .dropdown-content a:hover {
+      background-color: #f1f1f1;
     }
   </style>
-  <!-- Registro del Service Worker (si lo deseas conservar) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => {
-            console.log('Service Worker registrado:', registration.scope);
-          })
-          .catch(error => {
-            console.log('Error al registrar el Service Worker:', error);
-          });
-      });
-    }
-  </script>
 </head>
 <body>
-  <header>
-    <h1>Liquidación diaria</h1>
-  </header>
+  <h1>Generador de Liquidación - Aplicación B</h1>
   <div class="container">
-    <!-- Formulario para ingresar los datos -->
-    <form id="paymentForm">
-      <input type="text" id="clientName" placeholder="Nombre del cliente" required>
-      <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
-      <div class="payment-method">
-        <label>
-          <input type="radio" name="paymentType" value="Efectivo" required> Efectivo
-        </label>
-        <label>
-          <input type="radio" name="paymentType" value="Tarjeta"> Tarjeta
-        </label>
-      </div>
-      <button type="submit">Agregar</button>
-    </form>
-    <!-- Tabla de historial de cobros -->
-    <table id="historyTable">
-      <thead>
+    <!-- Campo para ingresar la fecha -->
+    <div class="date-input">
+      <label for="reportDate">Fecha (DD/MM/AAAA):</label>
+      <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
+    </div>
+    <!-- Sección para liquidaciones en Efectivo -->
+    <div class="section">
+      <h2>Efectivo (máximo 5 liquidaciones)</h2>
+      <table>
         <tr>
           <th>Cliente</th>
           <th>Importe</th>
-          <th>Tipo de Pago</th>
         </tr>
-      </thead>
-      <tbody>
-        <!-- Filas generadas dinámicamente -->
-      </tbody>
-    </table>
-    <!-- Sección de resumen con botones desplegables -->
-    <div class="summary">
-      <div>
-        <button id="toggleEfectivo">
-          <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
-        </button>
-        <div id="detalleEfectivo" class="dropdown-content"></div>
-      </div>
-      <div>
-        <button id="toggleTarjeta">
-          <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
-        </button>
-        <div id="detalleTarjeta" class="dropdown-content"></div>
-      </div>
-      <div>
-        <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_0"></td>
+          <td><input type="number" id="efectivo_importe_0" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_1"></td>
+          <td><input type="number" id="efectivo_importe_1" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_2"></td>
+          <td><input type="number" id="efectivo_importe_2" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_3"></td>
+          <td><input type="number" id="efectivo_importe_3" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="efectivo_cliente_4"></td>
+          <td><input type="number" id="efectivo_importe_4" step="0.01"></td>
+        </tr>
+      </table>
+      <!-- Dropdown para Total efectivo -->
+      <div class="dropdown">
+        <button onclick="toggleDropdown('efectivoDropdown')">Total efectivo</button>
+        <div id="efectivoDropdown" class="dropdown-content">
+          <a href="#">Efectivo</a>
+          <a href="#">Cheque</a>
+          <a href="#">Transferencia</a>
+        </div>
       </div>
     </div>
-    <!-- Botones para descargar o borrar historial -->
-    <div class="buttons" style="display:flex; justify-content: space-between; margin-top:10px;">
-      <button id="downloadExcel">Descargar Excel</button>
-      <button id="clearHistory">Borrar Historial</button>
+    <!-- Sección para liquidaciones con Tarjeta -->
+    <div class="section">
+      <h2>Tarjeta (máximo 5 liquidaciones)</h2>
+      <table>
+        <tr>
+          <th>Cliente</th>
+          <th>Importe</th>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_0"></td>
+          <td><input type="number" id="tarjeta_importe_0" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_1"></td>
+          <td><input type="number" id="tarjeta_importe_1" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_2"></td>
+          <td><input type="number" id="tarjeta_importe_2" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_3"></td>
+          <td><input type="number" id="tarjeta_importe_3" step="0.01"></td>
+        </tr>
+        <tr>
+          <td><input type="text" id="tarjeta_cliente_4"></td>
+          <td><input type="number" id="tarjeta_importe_4" step="0.01"></td>
+        </tr>
+      </table>
+      <!-- Dropdown para Total tarjeta -->
+      <div class="dropdown">
+        <button onclick="toggleDropdown('tarjetaDropdown')">Total tarjeta</button>
+        <div id="tarjetaDropdown" class="dropdown-content">
+          <a href="#">Visa</a>
+          <a href="#">MasterCard</a>
+          <a href="#">American Express</a>
+        </div>
+      </div>
     </div>
+    <!-- Botón para generar y descargar el archivo Excel -->
+    <button id="generateExcel">Generar Excel</button>
   </div>
-  <!-- Scripts para manejar la lógica de la aplicación -->
+  
   <script>
-    // Array para almacenar el historial de cobros
-    let history = JSON.parse(localStorage.getItem('history')) || [];
-
-    // Función para guardar el historial en localStorage
-    function saveHistory() {
-      localStorage.setItem('history', JSON.stringify(history));
-    }
-
-    // Función para actualizar la tabla y los totales
-    function updateUI() {
-      const tableBody = document.getElementById('historyTable').querySelector('tbody');
-      tableBody.innerHTML = '';
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
-      history.forEach(entry => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${entry.client}</td>
-          <td>${entry.amount.toFixed(2)}</td>
-          <td>${entry.type}</td>
-        `;
-        tableBody.appendChild(row);
-        if (entry.type === 'Efectivo') {
-          totalEfectivo += entry.amount;
-        } else {
-          totalTarjeta += entry.amount;
-        }
-      });
-      document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
-      document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
-      document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
-      updateDetails();
-    }
-
-    // Función para actualizar los detalles en los dropdowns
-    function updateDetails() {
-      const efectivoDiv = document.getElementById('detalleEfectivo');
-      let efectivoEntries = history.filter(entry => entry.type === "Efectivo");
-      let html = "<ul style='list-style-type:none; margin:0; padding:0;'>";
-      efectivoEntries.forEach(entry => {
-          html += `<li>${entry.client}: ${entry.amount.toFixed(2)}</li>`;
-      });
-      html += "</ul>";
-      efectivoDiv.innerHTML = html;
-      
-      const tarjetaDiv = document.getElementById('detalleTarjeta');
-      let tarjetaEntries = history.filter(entry => entry.type === "Tarjeta");
-      let html2 = "<ul style='list-style-type:none; margin:0; padding:0;'>";
-      tarjetaEntries.forEach(entry => {
-          html2 += `<li>${entry.client}: ${entry.amount.toFixed(2)}</li>`;
-      });
-      html2 += "</ul>";
-      tarjetaDiv.innerHTML = html2;
-    }
-
-    // Inicializar la UI con datos persistentes
-    updateUI();
-
-    // Manejo del envío del formulario
-    document.getElementById('paymentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const client = document.getElementById('clientName').value;
-      const amount = parseFloat(document.getElementById('amount').value);
-      const type = document.querySelector('input[name="paymentType"]:checked').value;
-      // Agregar registro al historial
-      history.push({ client, amount, type });
-      saveHistory();
-      updateUI();
-      this.reset();
-    });
-
-    // Borrar el historial con confirmación
-    document.getElementById('clearHistory').addEventListener('click', function() {
-      if (confirm('¿Estás seguro de borrar el historial?')) {
-        history = [];
-        saveHistory();
-        updateUI();
+    // Input mask sencillo para formatear la fecha (DD/MM/AAAA)
+    document.getElementById('reportDate').addEventListener('input', function() {
+      let input = this.value.replace(/\D/g, '');
+      if (input.length > 2 && input.length <= 4) {
+        input = input.slice(0,2) + '/' + input.slice(2);
+      } else if (input.length > 4) {
+        input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
       }
+      this.value = input;
     });
+    
+    // Función para alternar la visibilidad de los dropdowns
+    function toggleDropdown(id) {
+      var dropdown = document.getElementById(id);
+      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+    }
+    
+    // Función para generar el Excel con la plantilla deseada
+    document.getElementById('generateExcel').addEventListener('click', function() {
+      const reportDate = document.getElementById('reportDate').value.trim();
+      if (!reportDate || reportDate.length < 10) {
+        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA.');
+        return;
+      }
+      
+      // Recoger datos de Efectivo (máximo 5 filas)
+      let efectivoData = [];
+      for (let i = 0; i < 5; i++) {
+        const client = document.getElementById('efectivo_cliente_' + i).value.trim();
+        const amount = document.getElementById('efectivo_importe_' + i).value;
+        if (client !== "" && amount !== "") {
+          efectivoData.push({ client, amount: parseFloat(amount) });
+        } else {
+          efectivoData.push(null);
+        }
+      }
+      
+      // Recoger datos de Tarjeta (máximo 5 filas)
+      let tarjetaData = [];
+      for (let i = 0; i < 5; i++) {
+        const client = document.getElementById('tar
 
-    // Descargar el historial en Excel (funcionalidad existente)
-    document.getElementById('downloadExcel').addEventListener('click', function() {
-      // Aquí va tu código de descarga en Excel (sin cambios en esta mejora)
-      alert('Funcionalidad de descarga en Excel pendiente de implementación en este ejemplo.');
-    });
-
-    // Event listeners para mostrar/ocultar detalles de efectivo y tarjeta
-    document.getElementById('toggleEfectivo').addEventListener('click', function() {
-      const detailDiv = document.getElementById('detalleEfectivo');
-      detailDiv.style.display = (detailDiv.style.display === "none" || detailDiv.style.display === "") ? "block" : "none";
-    });
-    document.getElementById('toggleTarjeta').addEventListener('click', function() {
-      const detailDiv = document.getElementById('detalleTarjeta');
-      detailDiv.style.display = (detailDiv.style.display === "none" || detailDiv.style.display === "") ? "block" : "none";
-    });
-  </script>
-</body>
-</html>
