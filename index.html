@@ -104,6 +104,10 @@
     .summary div {
       color: #fff;
     }
+    /* Agregar cursor pointer a los totales interactivos */
+    #totalEfectivo, #totalTarjeta {
+      cursor: pointer;
+    }
     /* Botones de acciones */
     .buttons {
       display: flex;
@@ -188,6 +192,9 @@
         <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
       </div>
     </div>
+    <!-- Dropdowns para mostrar detalles -->
+    <div id="dropdownEfectivo" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
+    <div id="dropdownTarjeta" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
     <!-- Botones para descargar o borrar historial -->
     <div class="buttons">
       <button id="downloadExcel">Descargar Excel</button>
@@ -324,6 +331,51 @@
       }
       this.value = input;
     });
+
+    // Funciones para mostrar/ocultar dropdowns de detalles
+    function toggleDropdownEfectivo() {
+      const dropdown = document.getElementById('dropdownEfectivo');
+      if (dropdown.style.display === "none") {
+        const efectivoEntries = history.filter(entry => entry.type === 'Efectivo');
+        if (efectivoEntries.length === 0) {
+          dropdown.innerHTML = "<em>No hay registros de efectivo.</em>";
+        } else {
+          let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
+          efectivoEntries.forEach(function(entry) {
+            listHTML += "<li>" + entry.client + " - " + entry.amount.toFixed(2) + "</li>";
+          });
+          listHTML += "</ul>";
+          dropdown.innerHTML = listHTML;
+        }
+        dropdown.style.display = "block";
+      } else {
+        dropdown.style.display = "none";
+      }
+    }
+
+    function toggleDropdownTarjeta() {
+      const dropdown = document.getElementById('dropdownTarjeta');
+      if (dropdown.style.display === "none") {
+        const tarjetaEntries = history.filter(entry => entry.type === 'Tarjeta');
+        if (tarjetaEntries.length === 0) {
+          dropdown.innerHTML = "<em>No hay registros de tarjeta.</em>";
+        } else {
+          let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
+          tarjetaEntries.forEach(function(entry) {
+            listHTML += "<li>" + entry.client + " - " + entry.amount.toFixed(2) + "</li>";
+          });
+          listHTML += "</ul>";
+          dropdown.innerHTML = listHTML;
+        }
+        dropdown.style.display = "block";
+      } else {
+        dropdown.style.display = "none";
+      }
+    }
+
+    // Asignar eventos de clic a los totales interactivos
+    document.getElementById('totalEfectivo').addEventListener('click', toggleDropdownEfectivo);
+    document.getElementById('totalTarjeta').addEventListener('click', toggleDropdownTarjeta);
   </script>
 </body>
 </html>
