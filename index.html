@@ -103,6 +103,32 @@
     }
     .summary div {
       color: #fff;
+      position: relative;
+      cursor: pointer;
+    }
+    /* Estilos para el desglose desplegable */
+    .breakdown {
+      display: none;
+      position: absolute;
+      top: 110%;
+      left: 0;
+      background: #fff;
+      color: #000;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      z-index: 10;
+      max-height: 200px;
+      overflow-y: auto;
+      min-width: 150px;
+    }
+    .breakdown p {
+      margin: 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .breakdown p:last-child {
+      border-bottom: none;
     }
     /* Botones de acciones */
     .buttons {
@@ -178,11 +204,13 @@
     </table>
     <!-- Sección de resumen -->
     <div class="summary">
-      <div>
+      <div id="efectivoSummary">
         <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
+        <div class="breakdown" id="efectivoBreakdown"></div>
       </div>
-      <div>
+      <div id="tarjetaSummary">
         <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
+        <div class="breakdown" id="tarjetaBreakdown"></div>
       </div>
       <div>
         <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
@@ -204,12 +232,16 @@
       localStorage.setItem('history', JSON.stringify(history));
     }
 
-    // Función para actualizar la tabla y los totales
+    // Función para actualizar la tabla, totales y desglose
     function updateUI() {
       const tableBody = document.getElementById('historyTable').querySelector('tbody');
       tableBody.innerHTML = '';
       let totalEfectivo = 0;
       let totalTarjeta = 0;
+      // Variables para almacenar el desglose
+      let efectivoDesglose = '';
+      let tarjetaDesglose = '';
+      
       history.forEach(entry => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -220,13 +252,19 @@
         tableBody.appendChild(row);
         if (entry.type === 'Efectivo') {
           totalEfectivo += entry.amount;
+          efectivoDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
         } else {
           totalTarjeta += entry.amount;
+          tarjetaDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
         }
       });
       document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
       document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
       document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
+      
+      // Actualizar desglose en los contenedores correspondientes
+      document.getElementById('efectivoBreakdown').innerHTML = efectivoDesglose || '<p>Sin registros</p>';
+      document.getElementById('tarjetaBreakdown').innerHTML = tarjetaDesglose || '<p>Sin registros</p>';
     }
 
     // Inicializar la UI con datos persistentes
@@ -312,6 +350,19 @@
       // Generar el nombre del archivo y descargarlo
       var safeDate = reportDate.replace(/\//g, "-");
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
+    });
+
+    // Toggle para mostrar/ocultar el desglose al hacer clic en el resumen
+    document.getElementById('efectivoSummary').addEventListener('click', function(e) {
+      // Evitar que al hacer click se active el evento en elementos hijos
+      if(e.target.tagName !== "SPAN") return;
+      const breakdown = document.getElementById('efectivoBreakdown');
+      breakdown.style.display = breakdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.getElementById('tarjetaSummary').addEventListener('click', function(e) {
+      if(e.target.tagName !== "SPAN") return;
+      const breakdown = document.getElementById('tarjetaBreakdown');
+      breakdown.style.display = breakdown.style.display === 'block' ? 'none' : 'block';
     });
 
     // Input mask sencillo para formatear la fecha mientras se escribe (DD/MM/AAAA)
