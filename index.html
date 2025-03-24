@@ -184,4 +184,195 @@
           <input type="radio" name="paymentType" value="Efectivo" required> Efectivo
         </label>
         <label>
-          <input type="
+          <input type="radio" name="paymentType" value="Tarjeta"> Tarjeta
+        </label>
+      </div>
+      <button type="submit">Agregar</button>
+    </form>
+    <!-- Tabla de historial de cobros -->
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Importe</th>
+          <th>Tipo de Pago</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filas generadas dinámicamente -->
+      </tbody>
+    </table>
+    <!-- Sección de resumen -->
+    <div class="summary">
+      <div id="efectivoSummary">
+        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
+        <div class="breakdown" id="efectivoBreakdown"></div>
+      </div>
+      <div id="tarjetaSummary">
+        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
+        <div class="breakdown" id="tarjetaBreakdown"></div>
+      </div>
+      <div>
+        <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
+      </div>
+    </div>
+    <!-- Botones para descargar o borrar historial -->
+    <div class="buttons">
+      <button id="downloadExcel">Descargar Excel</button>
+      <button id="clearHistory">Borrar Historial</button>
+    </div>
+  </div>
+  <!-- Scripts para manejar la lógica de la aplicación -->
+  <script>
+    // Cargar historial desde localStorage o iniciar con array vacío
+    let history = JSON.parse(localStorage.getItem('history')) || [];
+
+    // Función para guardar el historial en localStorage
+    function saveHistory() {
+      localStorage.setItem('history', JSON.stringify(history));
+    }
+
+    // Función para actualizar la tabla, totales y desglose
+    function updateUI() {
+      const tableBody = document.getElementById('historyTable').querySelector('tbody');
+      tableBody.innerHTML = '';
+      let totalEfectivo = 0;
+      let totalTarjeta = 0;
+      // Variables para almacenar el desglose
+      let efectivoDesglose = '';
+      let tarjetaDesglose = '';
+      
+      history.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${entry.client}</td>
+          <td>${entry.amount.toFixed(2)}</td>
+          <td>${entry.type}</td>
+        `;
+        tableBody.appendChild(row);
+        if (entry.type === 'Efectivo') {
+          totalEfectivo += entry.amount;
+          efectivoDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
+        } else {
+          totalTarjeta += entry.amount;
+          tarjetaDesglose += `<p>${entry.client}: ${entry.amount.toFixed(2)}</p>`;
+        }
+      });
+      document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
+      document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
+      document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
+      
+      // Actualizar desglose en los contenedores correspondientes
+      document.getElementById('efectivoBreakdown').innerHTML = efectivoDesglose || '<p>Sin registros</p>';
+      document.getElementById('tarjetaBreakdown').innerHTML = tarjetaDesglose || '<p>Sin registros</p>';
+    }
+
+    // Inicializar la UI con datos persistentes
+    updateUI();
+
+    // Manejo del envío del formulario
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const client = document.getElementById('clientName').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+      const type = document.querySelector('input[name="paymentType"]:checked').value;
+      // Agregar registro al historial
+      history.push({ client, amount, type });
+      saveHistory();
+      updateUI();
+      this.reset();
+    });
+
+    // Borrar el historial con confirmación (y limpiar la fecha)
+    document.getElementById('clearHistory').addEventListener('click', function() {
+      if (confirm('¿Estás seguro de borrar el historial?')) {
+        history = [];
+        saveHistory();
+        updateUI();
+        // Limpiar el campo de fecha
+        document.getElementById('reportDate').value = '';
+      }
+    });
+
+    // Descargar el historial en Excel con vista similar a la pantalla
+    document.getElementById('downloadExcel').addEventListener('click', function() {
+      const reportDate = document.getElementById('reportDate').value.trim();
+      if (!reportDate || reportDate.length < 10) {
+        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
+        return;
+      }
+      // Calcular totales
+      let totalEfectivo = 0;
+      let totalTarjeta = 0;
+      history.forEach(function(entry) {
+        if (entry.type === "Efectivo") {
+          totalEfectivo += entry.amount;
+        } else {
+          totalTarjeta += entry.amount;
+        }
+      });
+      let totalGeneral = totalEfectivo + totalTarjeta;
+
+      // Crear array de datos para la hoja, incluyendo encabezados
+      let ws_data = [];
+      // Encabezado principal
+      ws_data.push(["Liquidación diaria"]);
+      ws_data.push(["Fecha: " + reportDate]);
+      ws_data.push([]); // fila vacía
+      // Encabezado de la tabla
+      ws_data.push(["Cliente", "Importe", "Tipo de Pago"]);
+      // Datos del historial
+      history.forEach(function(entry) {
+        ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
+      });
+      // Fila vacía y totales
+      ws_data.push([]);
+      ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
+      ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
+      ws_data.push(["Total General", totalGeneral.toFixed(2), ""]);
+
+      // Crear la hoja de Excel a partir del array de datos
+      var ws = XLSX.utils.aoa_to_sheet(ws_data);
+      // Ajustar anchos de columna
+      ws['!cols'] = [
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 }
+      ];
+      // Fusionar celdas para el encabezado
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, // "Liquidación diaria" en la fila 0
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }  // "Fecha: ..." en la fila 1
+      ];
+      // Añadir la hoja al libro
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Historial");
+      // Generar el nombre del archivo y descargarlo
+      var safeDate = reportDate.replace(/\//g, "-");
+      XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
+    });
+
+    // Toggle para mostrar/ocultar el desglose al hacer clic en el resumen
+    document.getElementById('efectivoSummary').addEventListener('click', function() {
+      const breakdown = document.getElementById('efectivoBreakdown');
+      breakdown.style.display = breakdown.style.display === 'block' ? 'none' : 'block';
+    });
+    document.getElementById('tarjetaSummary').addEventListener('click', function() {
+      const breakdown = document.getElementById('tarjetaBreakdown');
+      breakdown.style.display = breakdown.style.display === 'block' ? 'none' : 'block';
+    });
+
+    // Input mask sencillo para formatear la fecha mientras se escribe (DD/MM/AAAA)
+    document.getElementById('reportDate').addEventListener('input', function(e) {
+      let input = this.value.replace(/\D/g, '');
+      if (input.length > 2 && input.length <= 4) {
+        input = input.slice(0,2) + '/' + input.slice(2);
+      } else if (input.length > 4) {
+        input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
+      }
+      this.value = input;
+    });
+  </script>
+</body>
+</html>
+
