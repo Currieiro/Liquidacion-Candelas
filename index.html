@@ -183,13 +183,13 @@
     <!-- Sección de resumen -->
     <div class="summary">
       <div>
-        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0.00</span>
+        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span>
       </div>
       <div>
-        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0.00</span>
+        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span>
       </div>
       <div>
-        <strong>Total General:</strong> <span id="totalGeneral">0.00</span>
+        <strong>Total General:</strong> <span id="totalGeneral">0,00</span>
       </div>
     </div>
     <!-- Dropdowns para mostrar detalles -->
@@ -203,6 +203,11 @@
   </div>
   <!-- Scripts para manejar la lógica de la aplicación -->
   <script>
+    // Función para formatear números con coma como separador decimal
+    function formatNumber(num) {
+      return num.toFixed(2).replace(".", ",");
+    }
+
     // Cargar historial desde localStorage o iniciar con array vacío
     let history = JSON.parse(localStorage.getItem('history')) || [];
 
@@ -221,7 +226,7 @@
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${entry.client}</td>
-          <td>${entry.amount.toFixed(2)}</td>
+          <td>${formatNumber(entry.amount)}</td>
           <td>${entry.type}</td>
         `;
         tableBody.appendChild(row);
@@ -231,9 +236,9 @@
           totalTarjeta += entry.amount;
         }
       });
-      document.getElementById('totalEfectivo').textContent = totalEfectivo.toFixed(2);
-      document.getElementById('totalTarjeta').textContent = totalTarjeta.toFixed(2);
-      document.getElementById('totalGeneral').textContent = (totalEfectivo + totalTarjeta).toFixed(2);
+      document.getElementById('totalEfectivo').textContent = formatNumber(totalEfectivo);
+      document.getElementById('totalTarjeta').textContent = formatNumber(totalTarjeta);
+      document.getElementById('totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
     }
 
     // Inicializar la UI con datos persistentes
@@ -292,13 +297,13 @@
       ws_data.push(["Cliente", "Importe", "Tipo de Pago"]);
       // Datos del historial
       history.forEach(function(entry) {
-        ws_data.push([entry.client, entry.amount.toFixed(2), entry.type]);
+        ws_data.push([entry.client, formatNumber(entry.amount), entry.type]);
       });
       // Fila vacía y totales
       ws_data.push([]);
-      ws_data.push(["Total Efectivo", totalEfectivo.toFixed(2), ""]);
-      ws_data.push(["Total Tarjeta", totalTarjeta.toFixed(2), ""]);
-      ws_data.push(["Total General", totalGeneral.toFixed(2), ""]);
+      ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), ""]);
+      ws_data.push(["Total Tarjeta", formatNumber(totalTarjeta), ""]);
+      ws_data.push(["Total General", formatNumber(totalGeneral), ""]);
 
       // Crear la hoja de Excel a partir del array de datos
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -342,7 +347,7 @@
         } else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
           efectivoEntries.forEach(function(entry) {
-            listHTML += "<li>" + entry.client + " - " + entry.amount.toFixed(2) + "</li>";
+            listHTML += "<li>" + entry.client + " - " + formatNumber(entry.amount) + "</li>";
           });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
@@ -362,7 +367,7 @@
         } else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
           tarjetaEntries.forEach(function(entry) {
-            listHTML += "<li>" + entry.client + " - " + entry.amount.toFixed(2) + "</li>";
+            listHTML += "<li>" + entry.client + " - " + formatNumber(entry.amount) + "</li>";
           });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
