@@ -268,60 +268,98 @@
       }
     });
 
-    // Descargar el historial en Excel con vista similar a la pantalla
+    // Descargar el historial en Excel con dos columnas: una para efectivo y otra para tarjeta
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
       if (!reportDate || reportDate.length < 10) {
         alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
         return;
       }
+
+      // Filtrar entradas según el tipo de pago
+      let efectivoEntries = history.filter(entry => entry.type === "Efectivo");
+      let tarjetaEntries = history.filter(entry => entry.type === "Tarjeta");
+
       // Calcular totales
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
-      history.forEach(function(entry) {
-        if (entry.type === "Efectivo") {
-          totalEfectivo += entry.amount;
-        } else {
-          totalTarjeta += entry.amount;
-        }
-      });
+      let totalEfectivo = efectivoEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      let totalTarjeta = tarjetaEntries.reduce((sum, entry) => sum + entry.amount, 0);
       let totalGeneral = totalEfectivo + totalTarjeta;
 
-      // Crear array de datos para la hoja, incluyendo encabezados
       let ws_data = [];
-      // Encabezado principal
+      // Fila 0: Título
       ws_data.push(["Liquidación diaria"]);
+      // Fila 1: Fecha
       ws_data.push(["Fecha: " + reportDate]);
-      ws_data.push([]); // fila vacía
-      // Encabezado de la tabla
-      ws_data.push(["Cliente", "Importe", "Tipo de Pago"]);
-      // Datos del historial
-      history.forEach(function(entry) {
-        ws_data.push([entry.client, formatNumber(entry.amount), entry.type]);
-      });
-      // Fila vacía y totales
+      // Fila 2: vacía
       ws_data.push([]);
-      ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), ""]);
-      ws_data.push(["Total Tarjeta", formatNumber(totalTarjeta), ""]);
-      ws_data.push(["Total General", formatNumber(totalGeneral), ""]);
 
-      // Crear la hoja de Excel a partir del array de datos
+      // Fila 3: Encabezados generales para cada sección
+      ws_data.push(["Efectivo", "", "", "Tarjeta", ""]);
+      // Fila 4: Subencabezados
+      ws_data.push(["Cliente", "Importe", "", "Cliente", "Importe"]);
+
+      // Filas con los datos
+      let maxRows = Math.max(efectivoEntries.length, tarjetaEntries.length);
+      for (let i = 0; i < maxRows; i++) {
+        let row = [];
+        // Datos de efectivo
+        if (i < efectivoEntries.length) {
+          row.push(efectivoEntries[i].client);
+          row.push(formatNumber(efectivoEntries[i].amount));
+        } else {
+          row.push("");
+          row.push("");
+        }
+        // Columna separadora
+        row.push("");
+        // Datos de tarjeta
+        if (i < tarjetaEntries.length) {
+          row.push(tarjetaEntries[i].client);
+          row.push(formatNumber(tarjetaEntries[i].amount));
+        } else {
+          row.push("");
+          row.push("");
+        }
+        ws_data.push(row);
+      }
+
+      // Fila en blanco
+      ws_data.push([]);
+      // Fila con totales de cada sección
+      ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), "", "Total Tarjeta", formatNumber(totalTarjeta)]);
+      // Fila con total general (se puede fusionar para enfatizar)
+      ws_data.push(["Total General", formatNumber(totalGeneral)]);
+
+      // Crear la hoja de Excel
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
-      // Ajustar anchos de columna
+
+      // Definir anchos de columna para 5 columnas (la columna 3 es el separador)
       ws['!cols'] = [
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 15 }
+        { wch: 25 }, // Efectivo - Cliente
+        { wch: 15 }, // Efectivo - Importe
+        { wch: 3  }, // Separador
+        { wch: 25 }, // Tarjeta - Cliente
+        { wch: 15 }  // Tarjeta - Importe
       ];
-      // Fusionar celdas para el encabezado
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, // "Liquidación diaria" en la fila 0
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } }  // "Fecha: ..." en la fila 1
-      ];
-      // Añadir la hoja al libro
+
+      // Definir rangos para fusionar celdas
+      let merges = [];
+      // Fusión del título en la fila 0 (columnas A a E)
+      merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } });
+      // Fusión de la fecha en la fila 1 (columnas A a E)
+      merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } });
+      // Fusión del encabezado "Efectivo" en la fila 3 (columnas A y B)
+      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } });
+      // Fusión del encabezado "Tarjeta" en la fila 3 (columnas D y E)
+      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } });
+      // Fusión de la fila de "Total General" para darle protagonismo
+      merges.push({ s: { r: ws_data.length - 1, c: 0 }, e: { r: ws_data.length - 1, c: 4 } });
+      ws['!merges'] = merges;
+
+      // Crear el libro de Excel y añadir la hoja
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Historial");
-      // Generar el nombre del archivo y descargarlo
+
       var safeDate = reportDate.replace(/\//g, "-");
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
