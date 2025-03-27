@@ -327,8 +327,8 @@
       ws_data.push([]);
       // Fila con totales de cada sección
       ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), "", "Total Tarjeta", formatNumber(totalTarjeta)]);
-      // Fila con total general: se muestra en una sola celda fusionada
-      ws_data.push(["Total General: " + formatNumber(totalGeneral)]);
+      // Fila con Total General: sin dos puntos y en dos columnas (etiqueta y total), con el total en negrita
+      ws_data.push(["Total General", formatNumber(totalGeneral), "", "", ""]);
 
       // Crear la hoja de Excel a partir del array de datos
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
@@ -336,25 +336,26 @@
       // Definir anchos de columna para 5 columnas (la columna 3 es el separador)
       ws['!cols'] = [
         { wch: 25 }, // Efectivo - Cliente
-        { wch: 15 }, // Efectivo - Importe
+        { wch: 15 }, // Efectivo - Importe / Total General - Importe
         { wch: 3  }, // Separador
         { wch: 25 }, // Tarjeta - Cliente
         { wch: 15 }  // Tarjeta - Importe
       ];
 
-      // Definir rangos para fusionar celdas
+      // Definir rangos para fusionar celdas de las filas de título, fecha y encabezados
       let merges = [];
-      // Fusión del título en la fila 0 (columnas A a E)
-      merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } });
-      // Fusión de la fecha en la fila 1 (columnas A a E)
-      merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } });
-      // Fusión del encabezado "Efectivo" en la fila 3 (columnas A y B)
-      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } });
-      // Fusión del encabezado "Tarjeta" en la fila 3 (columnas D y E)
-      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } });
-      // Fusión de la fila de "Total General" para darle protagonismo
-      merges.push({ s: { r: ws_data.length - 1, c: 0 }, e: { r: ws_data.length - 1, c: 4 } });
+      merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } }); // Título
+      merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } }); // Fecha
+      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } }); // Encabezado "Efectivo"
+      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } }); // Encabezado "Tarjeta"
       ws['!merges'] = merges;
+
+      // Aplicar negrita al Total General (última fila) en las columnas A y B
+      let totalGeneralRowIndex = ws_data.length - 1; // índice 0-based
+      let cellA = "A" + (totalGeneralRowIndex + 1);
+      let cellB = "B" + (totalGeneralRowIndex + 1);
+      if(ws[cellA]) ws[cellA].s = { font: { bold: true } };
+      if(ws[cellB]) ws[cellB].s = { font: { bold: true } };
 
       // Crear el libro de Excel y añadir la hoja
       var wb = XLSX.utils.book_new();
