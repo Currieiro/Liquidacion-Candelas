@@ -327,10 +327,10 @@
       ws_data.push([]);
       // Fila con totales de cada sección
       ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), "", "Total Tarjeta", formatNumber(totalTarjeta)]);
-      // Fila con total general (se puede fusionar para enfatizar)
-      ws_data.push(["Total General", formatNumber(totalGeneral)]);
+      // Fila con total general: se muestra en una sola celda fusionada
+      ws_data.push(["Total General: " + formatNumber(totalGeneral)]);
 
-      // Crear la hoja de Excel
+      // Crear la hoja de Excel a partir del array de datos
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
 
       // Definir anchos de columna para 5 columnas (la columna 3 es el separador)
