@@ -84,7 +84,7 @@
     }
     table, th, td { border: 1px solid #fff; }
     th, td { padding: 10px; text-align: center; }
-    /* Agregamos el encabezado "Acciones" */
+    /* Encabezado de acciones */
     th.acciones { width: 100px; }
     /* Resumen de totales */
     .summary {
@@ -115,6 +115,48 @@
       cursor: pointer;
     }
     .buttons button:hover { opacity: 0.8; }
+
+    /* Modal para edición */
+    .modal {
+      display: none; /* Oculto por defecto */
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fff;
+      color: #000;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 300px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .modal-content label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .modal-content input {
+      width: 90%;
+      padding: 5px;
+      margin-top: 5px;
+    }
+    .modal-buttons {
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-around;
+    }
+    .modal-buttons button {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
   </style>
   <!-- Registro del Service Worker (si lo deseas conservar) -->
   <script>
@@ -142,12 +184,8 @@
       <input type="text" id="clientName" placeholder="Nombre del cliente" required>
       <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
       <div class="payment-method">
-        <label>
-          <input type="radio" name="paymentType" value="Efectivo" required> Efectivo
-        </label>
-        <label>
-          <input type="radio" name="paymentType" value="Tarjeta"> Tarjeta
-        </label>
+        <label><input type="radio" name="paymentType" value="Efectivo" required> Efectivo</label>
+        <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
       </div>
       <button type="submit">Agregar</button>
     </form>
@@ -161,9 +199,7 @@
           <th class="acciones">Acciones</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Las filas se generan dinámicamente -->
-      </tbody>
+      <tbody><!-- Se generan dinámicamente --></tbody>
     </table>
     <!-- Resumen -->
     <div class="summary">
@@ -180,6 +216,22 @@
       <button id="clearHistory">Borrar Historial</button>
     </div>
   </div>
+
+  <!-- Modal de edición -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>Editar Entrada</h2>
+      <label for="editClient">Cliente:</label>
+      <input type="text" id="editClient">
+      <label for="editAmount">Importe:</label>
+      <input type="number" id="editAmount" step="0.01">
+      <div class="modal-buttons">
+        <button id="saveEdit">Guardar</button>
+        <button id="cancelEdit">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts para manejar la lógica de la aplicación -->
   <script>
     // Función para formatear números con coma como separador decimal
@@ -187,25 +239,22 @@
       return num.toFixed(2).replace(".", ",");
     }
 
-    // Cargar historial desde localStorage o iniciar con array vacío
+    // Historial almacenado en localStorage
     let history = JSON.parse(localStorage.getItem('history')) || [];
+    let currentEditIndex = null; // Para guardar el índice que se está editando
 
-    // Función para guardar el historial en localStorage
     function saveHistory() {
       localStorage.setItem('history', JSON.stringify(history));
     }
 
-    // Función para actualizar la tabla y los totales
+    // Actualización de la interfaz de usuario
     function updateUI() {
       const tableBody = document.getElementById('historyTable').querySelector('tbody');
-      tableBody.innerHTML = ''; // Limpiar la tabla
-
+      tableBody.innerHTML = "";
       let totalEfectivo = 0;
       let totalTarjeta = 0;
-
       history.forEach((entry, index) => {
         const row = document.createElement('tr');
-        // Crear celdas para cliente, importe y tipo de pago
         row.innerHTML = `
           <td>${entry.client}</td>
           <td>${formatNumber(entry.amount)}</td>
@@ -213,113 +262,115 @@
           <td><button data-index="${index}" class="editBtn">Editar</button></td>
         `;
         tableBody.appendChild(row);
-
-        if (entry.type === 'Efectivo') {
-          totalEfectivo += entry.amount;
-        } else {
-          totalTarjeta += entry.amount;
-        }
+        if(entry.type === "Efectivo") totalEfectivo += entry.amount;
+        else totalTarjeta += entry.amount;
       });
-      // Actualizar totales
       document.getElementById('totalEfectivo').textContent = formatNumber(totalEfectivo);
       document.getElementById('totalTarjeta').textContent = formatNumber(totalTarjeta);
       document.getElementById('totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
 
-      // Asignar eventos a cada botón de editar
+      // Asignar el evento de clic a cada botón de editar
       document.querySelectorAll('.editBtn').forEach(btn => {
         btn.addEventListener('click', function() {
-          let index = parseInt(this.getAttribute('data-index'));
-          editEntry(index);
+          currentEditIndex = parseInt(this.getAttribute('data-index'));
+          openEditModal(currentEditIndex);
         });
       });
     }
 
-    // Función para editar una entrada mediante prompt
-    function editEntry(index) {
-      let newClient = prompt("Editar nombre de cliente:", history[index].client);
-      if (newClient === null) return; // Si cancela, no se cambia nada
-
-      let newAmountStr = prompt("Editar importe cobrado:", history[index].amount);
-      if (newAmountStr === null) return;
-      let newAmount = parseFloat(newAmountStr);
-      if (isNaN(newAmount)) {
-        alert("Importe inválido.");
-        return;
-      }
-      // Actualizar la entrada
-      history[index].client = newClient;
-      history[index].amount = newAmount;
-      saveHistory();
-      updateUI();
+    // Función para abrir el modal de edición y precargar los datos
+    function openEditModal(index) {
+      const modal = document.getElementById('editModal');
+      document.getElementById('editClient').value = history[index].client;
+      document.getElementById('editAmount').value = history[index].amount;
+      modal.style.display = "block";
     }
 
-    // Inicializar la UI con datos persistentes
+    // Función para cerrar el modal
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = "none";
+      currentEditIndex = null;
+    }
+
+    // Evento del botón "Guardar" en el modal
+    document.getElementById('saveEdit').addEventListener('click', function() {
+      const newClient = document.getElementById('editClient').value;
+      const newAmount = parseFloat(document.getElementById('editAmount').value);
+      if(newClient === "" || isNaN(newAmount)) {
+        alert("Por favor, ingresa datos válidos.");
+        return;
+      }
+      // Actualiza la entrada editada
+      history[currentEditIndex].client = newClient;
+      history[currentEditIndex].amount = newAmount;
+      saveHistory();
+      updateUI();
+      closeEditModal();
+    });
+
+    // Evento del botón "Cancelar" en el modal
+    document.getElementById('cancelEdit').addEventListener('click', function() {
+      closeEditModal();
+    });
+
+    // Inicialización de la UI
     updateUI();
 
-    // Manejo del envío del formulario
+    // Manejo del envío del formulario para agregar entradas
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const client = document.getElementById('clientName').value;
       const amount = parseFloat(document.getElementById('amount').value);
       const type = document.querySelector('input[name="paymentType"]:checked').value;
-      // Agregar registro al historial
       history.push({ client, amount, type });
       saveHistory();
       updateUI();
       this.reset();
     });
 
-    // Borrar el historial con confirmación (y limpiar la fecha)
+    // Borrar historial
     document.getElementById('clearHistory').addEventListener('click', function() {
-      if (confirm('¿Estás seguro de borrar el historial?')) {
+      if(confirm("¿Estás seguro de borrar el historial?")) {
         history = [];
         saveHistory();
         updateUI();
-        document.getElementById('reportDate').value = '';
+        document.getElementById('reportDate').value = "";
       }
     });
 
-    // Descargar el historial en Excel con dos columnas: una para efectivo y otra para tarjeta
+    // Descargar el Excel (se mantiene igual, con división de columnas)
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
-      if (!reportDate || reportDate.length < 10) {
-        alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
+      if(!reportDate || reportDate.length < 10) {
+        alert("Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.");
         return;
       }
-      // Filtrar entradas según tipo de pago
+
       let efectivoEntries = history.filter(entry => entry.type === "Efectivo");
       let tarjetaEntries = history.filter(entry => entry.type === "Tarjeta");
-
       let totalEfectivo = efectivoEntries.reduce((sum, entry) => sum + entry.amount, 0);
       let totalTarjeta = tarjetaEntries.reduce((sum, entry) => sum + entry.amount, 0);
       let totalGeneral = totalEfectivo + totalTarjeta;
 
       let ws_data = [];
-      // Fila 0: Título
       ws_data.push(["Liquidación diaria"]);
-      // Fila 1: Fecha
       ws_data.push(["Fecha: " + reportDate]);
-      // Fila 2: vacía
       ws_data.push([]);
-
-      // Fila 3: Encabezados generales
       ws_data.push(["Efectivo", "", "", "Tarjeta", ""]);
-      // Fila 4: Subencabezados
       ws_data.push(["Cliente", "Importe", "", "Cliente", "Importe"]);
 
-      // Filas con datos
       let maxRows = Math.max(efectivoEntries.length, tarjetaEntries.length);
-      for (let i = 0; i < maxRows; i++) {
+      for(let i = 0; i < maxRows; i++) {
         let row = [];
-        if (i < efectivoEntries.length) {
+        if(i < efectivoEntries.length) {
           row.push(efectivoEntries[i].client);
           row.push(formatNumber(efectivoEntries[i].amount));
         } else {
           row.push("");
           row.push("");
         }
-        row.push(""); // columna separadora
-        if (i < tarjetaEntries.length) {
+        row.push("");
+        if(i < tarjetaEntries.length) {
           row.push(tarjetaEntries[i].client);
           row.push(formatNumber(tarjetaEntries[i].amount));
         } else {
@@ -328,12 +379,10 @@
         }
         ws_data.push(row);
       }
-
       ws_data.push([]);
       ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), "", "Total Tarjeta", formatNumber(totalTarjeta)]);
       ws_data.push(["Total General", formatNumber(totalGeneral), "", "", ""]);
 
-      // Crear la hoja de Excel
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
       ws['!cols'] = [
         { wch: 25 },
@@ -344,10 +393,10 @@
       ];
 
       let merges = [];
-      merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } }); // Título
-      merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } }); // Fecha
-      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } }); // Encabezado Efectivo
-      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } }); // Encabezado Tarjeta
+      merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } });
+      merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } });
+      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } });
+      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } });
       ws['!merges'] = merges;
 
       var wb = XLSX.utils.book_new();
@@ -360,58 +409,52 @@
     // Máscara de entrada para la fecha
     document.getElementById('reportDate').addEventListener('input', function(e) {
       let input = this.value.replace(/\D/g, '');
-      if (input.length > 2 && input.length <= 4) {
+      if(input.length > 2 && input.length <= 4) {
         input = input.slice(0,2) + '/' + input.slice(2);
-      } else if (input.length > 4) {
+      } else if(input.length > 4) {
         input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
       }
       this.value = input;
     });
 
-    // Funciones para mostrar/ocultar dropdowns de detalles (sin cambios)
+    // Funciones para mostrar/ocultar dropdowns (sin cambios)
     function toggleDropdownEfectivo() {
       const dropdown = document.getElementById('dropdownEfectivo');
-      if (dropdown.style.display === "none") {
-        const efectivoEntries = history.filter(entry => entry.type === 'Efectivo');
-        if (efectivoEntries.length === 0) {
+      if(dropdown.style.display === "none") {
+        const efectivoEntries = history.filter(entry => entry.type === "Efectivo");
+        if(efectivoEntries.length === 0)
           dropdown.innerHTML = "<em>No hay registros de efectivo.</em>";
-        } else {
+        else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
-          efectivoEntries.forEach(function(entry) {
-            listHTML += "<li>" + entry.client + " - " + formatNumber(entry.amount) + "</li>";
-          });
+          efectivoEntries.forEach(function(entry) { listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`; });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
         }
         dropdown.style.display = "block";
-      } else {
-        dropdown.style.display = "none";
-      }
+      } else { dropdown.style.display = "none"; }
     }
 
     function toggleDropdownTarjeta() {
       const dropdown = document.getElementById('dropdownTarjeta');
-      if (dropdown.style.display === "none") {
-        const tarjetaEntries = history.filter(entry => entry.type === 'Tarjeta');
-        if (tarjetaEntries.length === 0) {
+      if(dropdown.style.display === "none") {
+        const tarjetaEntries = history.filter(entry => entry.type === "Tarjeta");
+        if(tarjetaEntries.length === 0)
           dropdown.innerHTML = "<em>No hay registros de tarjeta.</em>";
-        } else {
+        else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
-          tarjetaEntries.forEach(function(entry) {
-            listHTML += "<li>" + entry.client + " - " + formatNumber(entry.amount) + "</li>";
-          });
+          tarjetaEntries.forEach(function(entry) { listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`; });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
         }
         dropdown.style.display = "block";
-      } else {
-        dropdown.style.display = "none";
-      }
+      } else { dropdown.style.display = "none"; }
     }
 
-    // Asignar eventos de clic a los totales interactivos
     document.getElementById('totalEfectivo').addEventListener('click', toggleDropdownEfectivo);
     document.getElementById('totalTarjeta').addEventListener('click', toggleDropdownTarjeta);
   </script>
 </body>
 </html>
+
+
+  <!-- Scripts -->
