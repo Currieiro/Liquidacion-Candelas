@@ -29,7 +29,7 @@
       max-width: 800px;
       margin: 0 auto;
     }
-    /* Estilos para el campo de fecha */
+    /* Campo de fecha */
     .date-input {
       margin-bottom: 20px;
       display: flex;
@@ -69,12 +69,9 @@
       align-items: center;
       gap: 10px;
     }
-    .payment-method label {
-      cursor: pointer;
-    }
-    /* Regla para resaltar el botón "Agregar" */
+    .payment-method label { cursor: pointer; }
     form button[type="submit"] {
-      background-color: #008CBA; /* azul vibrante */
+      background-color: #008CBA;
       color: #fff;
       border: 1px solid #fff;
       border-radius: 5px;
@@ -85,13 +82,10 @@
       border-collapse: collapse;
       margin-bottom: 20px;
     }
-    table, th, td {
-      border: 1px solid #fff;
-    }
-    th, td {
-      padding: 10px;
-      text-align: center;
-    }
+    table, th, td { border: 1px solid #fff; }
+    th, td { padding: 10px; text-align: center; }
+    /* Agregamos el encabezado "Acciones" */
+    th.acciones { width: 100px; }
     /* Resumen de totales */
     .summary {
       display: flex;
@@ -101,14 +95,10 @@
       border: 1px solid #fff;
       border-radius: 5px;
     }
-    .summary div {
-      color: #fff;
-    }
-    /* Agregar cursor pointer a los totales interactivos */
-    #totalEfectivo, #totalTarjeta {
-      cursor: pointer;
-    }
-    /* Botones de acciones */
+    .summary div { color: #fff; }
+    /* Totales interactivos */
+    #totalEfectivo, #totalTarjeta { cursor: pointer; }
+    /* Botones */
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -124,21 +114,15 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    .buttons button:hover {
-      opacity: 0.8;
-    }
+    .buttons button:hover { opacity: 0.8; }
   </style>
   <!-- Registro del Service Worker (si lo deseas conservar) -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => {
-            console.log('Service Worker registrado:', registration.scope);
-          })
-          .catch(error => {
-            console.log('Error al registrar el Service Worker:', error);
-          });
+          .then(registration => console.log('Service Worker registrado:', registration.scope))
+          .catch(error => console.log('Error al registrar el Service Worker:', error));
       });
     }
   </script>
@@ -148,12 +132,12 @@
     <h1>Liquidación diaria</h1>
   </header>
   <div class="container">
-    <!-- Campo para la fecha -->
+    <!-- Campo de fecha -->
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
     </div>
-    <!-- Formulario para ingresar los datos -->
+    <!-- Formulario -->
     <form id="paymentForm">
       <input type="text" id="clientName" placeholder="Nombre del cliente" required>
       <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
@@ -167,32 +151,27 @@
       </div>
       <button type="submit">Agregar</button>
     </form>
-    <!-- Tabla de historial de cobros -->
+    <!-- Tabla de historial -->
     <table id="historyTable">
       <thead>
         <tr>
           <th>Cliente</th>
           <th>Importe</th>
           <th>Tipo de Pago</th>
+          <th class="acciones">Acciones</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Filas generadas dinámicamente -->
+        <!-- Las filas se generan dinámicamente -->
       </tbody>
     </table>
-    <!-- Sección de resumen -->
+    <!-- Resumen -->
     <div class="summary">
-      <div>
-        <strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span>
-      </div>
-      <div>
-        <strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span>
-      </div>
-      <div>
-        <strong>Total General:</strong> <span id="totalGeneral">0,00</span>
-      </div>
+      <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
+      <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
+      <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
     </div>
-    <!-- Dropdowns para mostrar detalles -->
+    <!-- Dropdowns para detalles -->
     <div id="dropdownEfectivo" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
     <div id="dropdownTarjeta" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
     <!-- Botones para descargar o borrar historial -->
@@ -219,26 +198,59 @@
     // Función para actualizar la tabla y los totales
     function updateUI() {
       const tableBody = document.getElementById('historyTable').querySelector('tbody');
-      tableBody.innerHTML = '';
+      tableBody.innerHTML = ''; // Limpiar la tabla
+
       let totalEfectivo = 0;
       let totalTarjeta = 0;
-      history.forEach(entry => {
+
+      history.forEach((entry, index) => {
         const row = document.createElement('tr');
+        // Crear celdas para cliente, importe y tipo de pago
         row.innerHTML = `
           <td>${entry.client}</td>
           <td>${formatNumber(entry.amount)}</td>
           <td>${entry.type}</td>
+          <td><button data-index="${index}" class="editBtn">Editar</button></td>
         `;
         tableBody.appendChild(row);
+
         if (entry.type === 'Efectivo') {
           totalEfectivo += entry.amount;
         } else {
           totalTarjeta += entry.amount;
         }
       });
+      // Actualizar totales
       document.getElementById('totalEfectivo').textContent = formatNumber(totalEfectivo);
       document.getElementById('totalTarjeta').textContent = formatNumber(totalTarjeta);
       document.getElementById('totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
+
+      // Asignar eventos a cada botón de editar
+      document.querySelectorAll('.editBtn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          let index = parseInt(this.getAttribute('data-index'));
+          editEntry(index);
+        });
+      });
+    }
+
+    // Función para editar una entrada mediante prompt
+    function editEntry(index) {
+      let newClient = prompt("Editar nombre de cliente:", history[index].client);
+      if (newClient === null) return; // Si cancela, no se cambia nada
+
+      let newAmountStr = prompt("Editar importe cobrado:", history[index].amount);
+      if (newAmountStr === null) return;
+      let newAmount = parseFloat(newAmountStr);
+      if (isNaN(newAmount)) {
+        alert("Importe inválido.");
+        return;
+      }
+      // Actualizar la entrada
+      history[index].client = newClient;
+      history[index].amount = newAmount;
+      saveHistory();
+      updateUI();
     }
 
     // Inicializar la UI con datos persistentes
@@ -263,7 +275,6 @@
         history = [];
         saveHistory();
         updateUI();
-        // Limpiar el campo de fecha
         document.getElementById('reportDate').value = '';
       }
     });
@@ -275,12 +286,10 @@
         alert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.');
         return;
       }
-
-      // Filtrar entradas según el tipo de pago
+      // Filtrar entradas según tipo de pago
       let efectivoEntries = history.filter(entry => entry.type === "Efectivo");
       let tarjetaEntries = history.filter(entry => entry.type === "Tarjeta");
 
-      // Calcular totales
       let totalEfectivo = efectivoEntries.reduce((sum, entry) => sum + entry.amount, 0);
       let totalTarjeta = tarjetaEntries.reduce((sum, entry) => sum + entry.amount, 0);
       let totalGeneral = totalEfectivo + totalTarjeta;
@@ -293,16 +302,15 @@
       // Fila 2: vacía
       ws_data.push([]);
 
-      // Fila 3: Encabezados generales para cada sección
+      // Fila 3: Encabezados generales
       ws_data.push(["Efectivo", "", "", "Tarjeta", ""]);
       // Fila 4: Subencabezados
       ws_data.push(["Cliente", "Importe", "", "Cliente", "Importe"]);
 
-      // Filas con los datos
+      // Filas con datos
       let maxRows = Math.max(efectivoEntries.length, tarjetaEntries.length);
       for (let i = 0; i < maxRows; i++) {
         let row = [];
-        // Datos de efectivo
         if (i < efectivoEntries.length) {
           row.push(efectivoEntries[i].client);
           row.push(formatNumber(efectivoEntries[i].amount));
@@ -310,9 +318,7 @@
           row.push("");
           row.push("");
         }
-        // Columna separadora
-        row.push("");
-        // Datos de tarjeta
+        row.push(""); // columna separadora
         if (i < tarjetaEntries.length) {
           row.push(tarjetaEntries[i].client);
           row.push(formatNumber(tarjetaEntries[i].amount));
@@ -323,41 +329,27 @@
         ws_data.push(row);
       }
 
-      // Fila en blanco
       ws_data.push([]);
-      // Fila con totales de cada sección
       ws_data.push(["Total Efectivo", formatNumber(totalEfectivo), "", "Total Tarjeta", formatNumber(totalTarjeta)]);
-      // Fila con Total General: sin dos puntos y en dos columnas (etiqueta y total), con el total en negrita
       ws_data.push(["Total General", formatNumber(totalGeneral), "", "", ""]);
 
-      // Crear la hoja de Excel a partir del array de datos
+      // Crear la hoja de Excel
       var ws = XLSX.utils.aoa_to_sheet(ws_data);
-
-      // Definir anchos de columna para 5 columnas (la columna 3 es el separador)
       ws['!cols'] = [
-        { wch: 25 }, // Efectivo - Cliente
-        { wch: 15 }, // Efectivo - Importe / Total General - Importe
-        { wch: 3  }, // Separador
-        { wch: 25 }, // Tarjeta - Cliente
-        { wch: 15 }  // Tarjeta - Importe
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 3 },
+        { wch: 25 },
+        { wch: 15 }
       ];
 
-      // Definir rangos para fusionar celdas de las filas de título, fecha y encabezados
       let merges = [];
       merges.push({ s: { r:0, c:0 }, e: { r:0, c:4 } }); // Título
       merges.push({ s: { r:1, c:0 }, e: { r:1, c:4 } }); // Fecha
-      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } }); // Encabezado "Efectivo"
-      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } }); // Encabezado "Tarjeta"
+      merges.push({ s: { r:3, c:0 }, e: { r:3, c:1 } }); // Encabezado Efectivo
+      merges.push({ s: { r:3, c:3 }, e: { r:3, c:4 } }); // Encabezado Tarjeta
       ws['!merges'] = merges;
 
-      // Aplicar negrita al Total General (última fila) en las columnas A y B
-      let totalGeneralRowIndex = ws_data.length - 1; // índice 0-based
-      let cellA = "A" + (totalGeneralRowIndex + 1);
-      let cellB = "B" + (totalGeneralRowIndex + 1);
-      if(ws[cellA]) ws[cellA].s = { font: { bold: true } };
-      if(ws[cellB]) ws[cellB].s = { font: { bold: true } };
-
-      // Crear el libro de Excel y añadir la hoja
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Historial");
 
@@ -365,7 +357,7 @@
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
 
-    // Input mask sencillo para formatear la fecha mientras se escribe (DD/MM/AAAA)
+    // Máscara de entrada para la fecha
     document.getElementById('reportDate').addEventListener('input', function(e) {
       let input = this.value.replace(/\D/g, '');
       if (input.length > 2 && input.length <= 4) {
@@ -376,7 +368,7 @@
       this.value = input;
     });
 
-    // Funciones para mostrar/ocultar dropdowns de detalles
+    // Funciones para mostrar/ocultar dropdowns de detalles (sin cambios)
     function toggleDropdownEfectivo() {
       const dropdown = document.getElementById('dropdownEfectivo');
       if (dropdown.style.display === "none") {
