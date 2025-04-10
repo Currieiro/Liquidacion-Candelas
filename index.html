@@ -11,7 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="Liquidación diaria">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* Estilos generales */
+    /* ======================== */
+    /* Estilos generales y de layout */
+    /* ======================== */
     body {
       font-family: Arial, sans-serif;
       background: #6f4e37; /* marrón café */
@@ -29,7 +31,6 @@
       max-width: 800px;
       margin: 0 auto;
     }
-    /* Campo de fecha */
     .date-input {
       margin-bottom: 20px;
       display: flex;
@@ -45,14 +46,14 @@
       color: #fff;
       width: 150px;
     }
-    /* Formulario */
     form {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 20px;
     }
-    form input, form button {
+    form input,
+    form button {
       padding: 10px;
       font-size: 1em;
       border: 1px solid #fff;
@@ -76,7 +77,6 @@
       border: 1px solid #fff;
       border-radius: 5px;
     }
-    /* Tabla de historial */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -84,9 +84,7 @@
     }
     table, th, td { border: 1px solid #fff; }
     th, td { padding: 10px; text-align: center; }
-    /* Encabezado de acciones */
     th.acciones { width: 100px; }
-    /* Resumen de totales */
     .summary {
       display: flex;
       justify-content: space-around;
@@ -96,9 +94,7 @@
       border-radius: 5px;
     }
     .summary div { color: #fff; }
-    /* Totales interactivos */
     #totalEfectivo, #totalTarjeta { cursor: pointer; }
-    /* Botones */
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -116,7 +112,9 @@
     }
     .buttons button:hover { opacity: 0.8; }
 
-    /* Modal para edición */
+    /* ======================== */
+    /* Estilos para los modales personalizados */
+    /* ======================== */
     .modal {
       display: none; /* Oculto por defecto */
       position: fixed;
@@ -143,7 +141,7 @@
       margin-top: 10px;
       font-weight: bold;
     }
-    .modal-content input {
+    .modal-content input, .modal-content select {
       width: 90%;
       padding: 5px;
       margin-top: 5px;
@@ -158,16 +156,6 @@
       cursor: pointer;
     }
   </style>
-  <!-- Registro del Service Worker (si lo deseas conservar) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(registration => console.log('Service Worker registrado:', registration.scope))
-          .catch(error => console.log('Error al registrar el Service Worker:', error));
-      });
-    }
-  </script>
 </head>
 <body>
   <header>
@@ -179,7 +167,7 @@
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10">
     </div>
-    <!-- Formulario -->
+    <!-- Formulario de entrada -->
     <form id="paymentForm">
       <input type="text" id="clientName" placeholder="Nombre del cliente" required>
       <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01">
@@ -195,29 +183,29 @@
         <tr>
           <th>Cliente</th>
           <th>Importe</th>
-          <th>Tipo de Pago</th>
+          <th>Forma de pago</th>
           <th class="acciones">Acciones</th>
         </tr>
       </thead>
-      <tbody><!-- Se generan dinámicamente --></tbody>
+      <tbody><!-- Las filas se generan dinámicamente --></tbody>
     </table>
-    <!-- Resumen -->
+    <!-- Resumen de totales -->
     <div class="summary">
       <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
       <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
       <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
     </div>
-    <!-- Dropdowns para detalles -->
+    <!-- Dropdowns para mostrar detalles -->
     <div id="dropdownEfectivo" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
     <div id="dropdownTarjeta" style="display:none; margin-top: 10px; border: 1px solid #fff; border-radius: 5px; padding: 10px; background-color: #f0a500; color: #fff;"></div>
-    <!-- Botones para descargar o borrar historial -->
+    <!-- Botones para descargar Excel o borrar historial -->
     <div class="buttons">
       <button id="downloadExcel">Descargar Excel</button>
       <button id="clearHistory">Borrar Historial</button>
     </div>
   </div>
 
-  <!-- Modal de edición -->
+  <!-- Modal de edición (para modificar Cliente, Importe y Forma de pago) -->
   <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Editar Entrada</h2>
@@ -225,6 +213,11 @@
       <input type="text" id="editClient">
       <label for="editAmount">Importe:</label>
       <input type="number" id="editAmount" step="0.01">
+      <label for="editPayment">Forma de pago:</label>
+      <select id="editPayment">
+        <option value="Efectivo">Efectivo</option>
+        <option value="Tarjeta">Tarjeta</option>
+      </select>
       <div class="modal-buttons">
         <button id="saveEdit">Guardar</button>
         <button id="cancelEdit">Cancelar</button>
@@ -232,7 +225,27 @@
     </div>
   </div>
 
-  <!-- Scripts para manejar la lógica de la aplicación -->
+  <!-- Modal de confirmación (para borrar historial, etc.) -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <p id="confirmMessage">Mensaje de confirmación</p>
+      <div class="modal-buttons">
+        <button id="confirmAccept">Aceptar</button>
+        <button id="confirmCancel">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de alerta (para mensajes sin opción de cancelar) -->
+  <div id="alertModal" class="modal">
+    <div class="modal-content">
+      <p id="alertMessage">Mensaje de alerta</p>
+      <div class="modal-buttons">
+        <button id="alertAccept">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Función para formatear números con coma como separador decimal
     function formatNumber(num) {
@@ -241,13 +254,13 @@
 
     // Historial almacenado en localStorage
     let history = JSON.parse(localStorage.getItem('history')) || [];
-    let currentEditIndex = null; // Para guardar el índice que se está editando
+    let currentEditIndex = null; // Índice de la entrada a editar
 
     function saveHistory() {
       localStorage.setItem('history', JSON.stringify(history));
     }
 
-    // Actualización de la interfaz de usuario
+    // Actualiza la tabla y totales
     function updateUI() {
       const tableBody = document.getElementById('historyTable').querySelector('tbody');
       tableBody.innerHTML = "";
@@ -269,7 +282,7 @@
       document.getElementById('totalTarjeta').textContent = formatNumber(totalTarjeta);
       document.getElementById('totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
 
-      // Asignar el evento de clic a cada botón de editar
+      // Asignar evento a los botones "Editar"
       document.querySelectorAll('.editBtn').forEach(btn => {
         btn.addEventListener('click', function() {
           currentEditIndex = parseInt(this.getAttribute('data-index'));
@@ -278,45 +291,84 @@
       });
     }
 
-    // Función para abrir el modal de edición y precargar los datos
+    // Modal de edición: abre y precarga datos de la entrada
     function openEditModal(index) {
-      const modal = document.getElementById('editModal');
       document.getElementById('editClient').value = history[index].client;
       document.getElementById('editAmount').value = history[index].amount;
-      modal.style.display = "block";
+      document.getElementById('editPayment').value = history[index].type;
+      document.getElementById('editModal').style.display = "block";
     }
 
-    // Función para cerrar el modal
     function closeEditModal() {
       document.getElementById('editModal').style.display = "none";
       currentEditIndex = null;
     }
 
-    // Evento del botón "Guardar" en el modal
+    // Guardar edición desde el modal
     document.getElementById('saveEdit').addEventListener('click', function() {
       const newClient = document.getElementById('editClient').value;
       const newAmount = parseFloat(document.getElementById('editAmount').value);
+      const newPayment = document.getElementById('editPayment').value;
       if(newClient === "" || isNaN(newAmount)) {
-        alert("Por favor, ingresa datos válidos.");
+        customAlert("Por favor, ingresa datos válidos.", function(){});
         return;
       }
-      // Actualiza la entrada editada
       history[currentEditIndex].client = newClient;
       history[currentEditIndex].amount = newAmount;
+      history[currentEditIndex].type = newPayment;
       saveHistory();
       updateUI();
       closeEditModal();
     });
 
-    // Evento del botón "Cancelar" en el modal
-    document.getElementById('cancelEdit').addEventListener('click', function() {
-      closeEditModal();
-    });
+    document.getElementById('cancelEdit').addEventListener('click', closeEditModal);
 
-    // Inicialización de la UI
+    // Modal de confirmación personalizado
+    function customConfirm(message, callback) {
+      const modal = document.getElementById('confirmModal');
+      document.getElementById('confirmMessage').textContent = message;
+      modal.style.display = "block";
+
+      const acceptBtn = document.getElementById('confirmAccept');
+      const cancelBtn = document.getElementById('confirmCancel');
+
+      // Funciones temporales para eliminar los event listeners después
+      function cleanUp() {
+        acceptBtn.removeEventListener('click', onAccept);
+        cancelBtn.removeEventListener('click', onCancel);
+        modal.style.display = "none";
+      }
+      function onAccept() {
+        cleanUp();
+        callback(true);
+      }
+      function onCancel() {
+        cleanUp();
+        callback(false);
+      }
+      acceptBtn.addEventListener('click', onAccept);
+      cancelBtn.addEventListener('click', onCancel);
+    }
+
+    // Modal de alerta personalizado
+    function customAlert(message, callback) {
+      const modal = document.getElementById('alertModal');
+      document.getElementById('alertMessage').textContent = message;
+      modal.style.display = "block";
+
+      const acceptBtn = document.getElementById('alertAccept');
+      function onAccept() {
+        acceptBtn.removeEventListener('click', onAccept);
+        modal.style.display = "none";
+        if(callback) callback();
+      }
+      acceptBtn.addEventListener('click', onAccept);
+    }
+
+    // Inicializar la UI con datos
     updateUI();
 
-    // Manejo del envío del formulario para agregar entradas
+    // Manejo del formulario para agregar entradas
     document.getElementById('paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const client = document.getElementById('clientName').value;
@@ -328,21 +380,23 @@
       this.reset();
     });
 
-    // Borrar historial
+    // Borrar historial con confirmación personalizada
     document.getElementById('clearHistory').addEventListener('click', function() {
-      if(confirm("¿Estás seguro de borrar el historial?")) {
-        history = [];
-        saveHistory();
-        updateUI();
-        document.getElementById('reportDate').value = "";
-      }
+      customConfirm("¿Estás seguro de borrar el historial?", function(result) {
+        if(result) {
+          history = [];
+          saveHistory();
+          updateUI();
+          document.getElementById('reportDate').value = "";
+        }
+      });
     });
 
-    // Descargar el Excel (se mantiene igual, con división de columnas)
+    // Descargar Excel: si la fecha es inválida muestra alerta personalizada
     document.getElementById('downloadExcel').addEventListener('click', function() {
       const reportDate = document.getElementById('reportDate').value.trim();
       if(!reportDate || reportDate.length < 10) {
-        alert("Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.");
+        customAlert("Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.", function(){});
         return;
       }
 
@@ -406,7 +460,7 @@
       XLSX.writeFile(wb, 'liquidación_' + safeDate + '.xlsx');
     });
 
-    // Máscara de entrada para la fecha
+    // Máscara de entrada para la fecha (DD/MM/AAAA)
     document.getElementById('reportDate').addEventListener('input', function(e) {
       let input = this.value.replace(/\D/g, '');
       if(input.length > 2 && input.length <= 4) {
@@ -417,7 +471,7 @@
       this.value = input;
     });
 
-    // Funciones para mostrar/ocultar dropdowns (sin cambios)
+    // Funciones para mostrar/ocultar dropdowns de detalles (efectivo y tarjeta)
     function toggleDropdownEfectivo() {
       const dropdown = document.getElementById('dropdownEfectivo');
       if(dropdown.style.display === "none") {
@@ -426,7 +480,9 @@
           dropdown.innerHTML = "<em>No hay registros de efectivo.</em>";
         else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
-          efectivoEntries.forEach(function(entry) { listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`; });
+          efectivoEntries.forEach(entry => {
+            listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`;
+          });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
         }
@@ -442,7 +498,9 @@
           dropdown.innerHTML = "<em>No hay registros de tarjeta.</em>";
         else {
           let listHTML = "<ul style='list-style: none; margin: 0; padding: 0;'>";
-          tarjetaEntries.forEach(function(entry) { listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`; });
+          tarjetaEntries.forEach(entry => {
+            listHTML += `<li>${entry.client} - ${formatNumber(entry.amount)}</li>`;
+          });
           listHTML += "</ul>";
           dropdown.innerHTML = listHTML;
         }
@@ -455,6 +513,7 @@
   </script>
 </body>
 </html>
+
 
 
   <!-- Scripts -->
