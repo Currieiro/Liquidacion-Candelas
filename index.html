@@ -11,9 +11,6 @@
   <meta name="apple-mobile-web-app-title" content="Liquidación diaria" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* ======================== */
-    /* Estilos generales y de layout */
-    /* ======================== */
     :root {
       --coffee: #6f4e37;
       --orange: #FFA500;
@@ -21,8 +18,14 @@
       --white: #fff;
       --text: #fff;
       --black: #000;
+      --blue: #008CBA;
     }
     * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overscroll-behavior-y: contain; /* reduce “rebote” en móviles */
+      scroll-behavior: auto;
+    }
     body {
       font-family: Arial, sans-serif;
       background: var(--coffee);
@@ -58,6 +61,8 @@
       color: var(--white);
       width: 180px;
     }
+
+    /* Formulario */
     form {
       display: flex;
       flex-wrap: wrap;
@@ -83,18 +88,20 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 8px 12px;
-      border: 1px dashed #ffffff66;
-      border-radius: 6px;
+      padding: 0;          /* sin recuadro punteado */
+      border: none;        /* eliminado */
+      border-radius: 0;    /* limpio */
     }
     .payment-method label { cursor: pointer; }
     form button[type="submit"] {
-      background-color: #008CBA;
+      background-color: var(--blue);
       color: var(--white);
       border: 1px solid var(--white);
       border-radius: 5px;
       cursor: pointer;
     }
+
+    /* Tabla */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -106,6 +113,18 @@
     table, th, td { border: 1px solid var(--white); }
     th, td { padding: 10px; text-align: center; }
     th.acciones { width: 140px; }
+
+    /* Botón Editar dentro de la tabla: igual que Agregar */
+    .editBtn {
+      border: 1px solid var(--white);
+      background-color: var(--blue);
+      color: var(--white);
+      border-radius: 5px;
+      padding: 10px; /* misma medida visual */
+      cursor: pointer;
+    }
+
+    /* Resumen */
     .summary {
       display: flex;
       justify-content: space-around;
@@ -118,6 +137,8 @@
     }
     .summary div { color: var(--white); }
     #totalEfectivo, #totalTarjeta { cursor: pointer; text-decoration: underline; }
+
+    /* Botonera inferior */
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -138,9 +159,7 @@
     }
     .buttons button:hover { opacity: 0.9; }
 
-    /* ======================== */
-    /* Estilos para los modales */
-    /* ======================== */
+    /* Modales */
     .modal {
       display: none;
       position: fixed;
@@ -175,6 +194,8 @@
       margin-top: 5px;
       border: 1px solid #ccc;
       border-radius: 6px;
+      color: #000;
+      background: #fff;
     }
     .modal-buttons {
       margin-top: 16px;
@@ -183,17 +204,20 @@
       justify-content: space-between;
       flex-wrap: wrap;
     }
+    /* Botones del modal con texto negro y fondo blanco para visibilidad */
     .modal-buttons button {
-      padding: 8px 10px;
+      padding: 10px;
       cursor: pointer;
       flex: 1;
       border-radius: 6px;
       border: 1px solid #ddd;
-      background: #f3f3f3;
+      background: #fff;
+      color: #000; /* texto negro */
     }
-    .danger { background: #d9534f; color: #fff; border-color: #d9534f; }
-    .primary { background: #007bff; color: #fff; border-color: #007bff; }
-    .secondary { background: #6c757d; color: #fff; border-color: #6c757d; }
+    /* Bordes diferenciados por “tipo”, pero manteniendo fondo blanco */
+    .danger     { border-color: #d9534f; }
+    .primary    { border-color: #007bff; }
+    .secondary  { border-color: #6c757d; }
 
     /* Dropdowns */
     .dropdown {
@@ -205,7 +229,6 @@
       background-color: var(--orange-dark);
       color: var(--white);
     }
-    .muted { opacity: .9; font-size: .9em; }
   </style>
 </head>
 <body>
@@ -214,14 +237,14 @@
   </header>
 
   <div class="container">
-    <!-- Campo de fecha -->
+    <!-- Fecha -->
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric">
-      <span class="muted">La fecha y el formulario se guardan como borrador automáticamente.</span>
+      <!-- (Descripción eliminada a petición) -->
     </div>
 
-    <!-- Formulario de entrada -->
+    <!-- Formulario -->
     <form id="paymentForm" autocomplete="off">
       <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
       <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
@@ -232,7 +255,7 @@
       <button type="submit">Agregar</button>
     </form>
 
-    <!-- Tabla de historial -->
+    <!-- Tabla -->
     <table id="historyTable">
       <thead>
         <tr>
@@ -242,7 +265,7 @@
           <th class="acciones">Acciones</th>
         </tr>
       </thead>
-      <tbody><!-- filas dinámicas --></tbody>
+      <tbody></tbody>
     </table>
 
     <!-- Resumen -->
@@ -277,9 +300,9 @@
         <option value="Tarjeta">Tarjeta</option>
       </select>
       <div class="modal-buttons">
-        <button id="deleteLine" class="danger">Eliminar línea</button>
-        <button id="saveEdit" class="primary">Guardar</button>
-        <button id="cancelEdit" class="secondary">Cancelar</button>
+        <button id="deleteLine" class="danger" type="button">Eliminar línea</button>
+        <button id="saveEdit" class="primary" type="button">Guardar</button>
+        <button id="cancelEdit" class="secondary" type="button">Cancelar</button>
       </div>
     </div>
   </div>
@@ -289,8 +312,8 @@
     <div class="modal-content">
       <p id="confirmMessage">Mensaje de confirmación</p>
       <div class="modal-buttons">
-        <button id="confirmAccept" class="primary">Aceptar</button>
-        <button id="confirmCancel" class="secondary">Cancelar</button>
+        <button id="confirmAccept" class="primary" type="button">Aceptar</button>
+        <button id="confirmCancel" class="secondary" type="button">Cancelar</button>
       </div>
     </div>
   </div>
@@ -300,7 +323,7 @@
     <div class="modal-content">
       <p id="alertMessage">Mensaje de alerta</p>
       <div class="modal-buttons">
-        <button id="alertAccept" class="primary">Aceptar</button>
+        <button id="alertAccept" class="primary" type="button">Aceptar</button>
       </div>
     </div>
   </div>
@@ -319,13 +342,10 @@
     const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
     function formatNumber(num) {
-      // Asegura 2 decimales y coma en UI
       const n = (typeof num === 'number') ? num : parseFloat(String(num).replace(',', '.')) || 0;
       return n.toFixed(2).replace('.', ',');
     }
-
     function parseAmount(input) {
-      // Acepta "12,34" o "12.34"
       if (input == null) return NaN;
       return parseFloat(String(input).replace(',', '.'));
     }
@@ -334,32 +354,28 @@
     // Estado y persistencia
     // ============================
     let history = [];
-    let currentEditIndex = null; // índice de la entrada a editar en history
+    let currentEditIndex = null;
 
     function loadHistory() {
       try {
         const raw = localStorage.getItem(LS_KEYS.HISTORY);
         history = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(history)) history = [];
-      } catch (e) {
-        history = [];
-      }
+      } catch (e) { history = []; }
     }
-
     function saveHistory() {
       localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(history));
     }
 
-    // Borradores: nunca perdemos lo tecleado salvo que el usuario lo cambie
+    // Borradores
     function saveDraftForm() {
       const draft = {
         client: $('#clientName').value,
-        amount: $('#amount').value, // guardo tal cual lo tecleado (coma o punto)
+        amount: $('#amount').value,
         type: ($('input[name="paymentType"]:checked') || {}).value || null
       };
       localStorage.setItem(LS_KEYS.DRAFT, JSON.stringify(draft));
     }
-
     function loadDraftForm() {
       try {
         const raw = localStorage.getItem(LS_KEYS.DRAFT);
@@ -373,30 +389,21 @@
         }
       } catch (_) {}
     }
-
-    function saveDraftDate() {
-      localStorage.setItem(LS_KEYS.DATE, $('#reportDate').value);
-    }
-
+    function saveDraftDate() { localStorage.setItem(LS_KEYS.DATE, $('#reportDate').value); }
     function loadDraftDate() {
       const d = localStorage.getItem(LS_KEYS.DATE);
       if (d) $('#reportDate').value = d;
     }
 
     // ============================
-    // UI
+    // UI (conservando scroll para evitar “rebote”)
     // ============================
-    function clearNode(node) {
-      while (node.firstChild) node.removeChild(node.firstChild);
-    }
-
-    function makeCell(text) {
-      const td = document.createElement('td');
-      td.textContent = text;
-      return td;
-    }
+    function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function makeCell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
 
     function updateUI() {
+      const prevY = window.scrollY; // guardamos posición de scroll
+
       const tbody = $('#historyTable tbody');
       clearNode(tbody);
 
@@ -405,7 +412,6 @@
 
       history.forEach((entry, index) => {
         const tr = document.createElement('tr');
-
         tr.appendChild(makeCell(entry.client));
         tr.appendChild(makeCell(formatNumber(entry.amount)));
         tr.appendChild(makeCell(entry.type));
@@ -436,10 +442,13 @@
           openEditModal(currentEditIndex);
         });
       });
+
+      // restauramos scroll para evitar “saltos” visibles
+      window.scrollTo({ top: prevY });
     }
 
     // ============================
-    // Modales custom
+    // Modales
     // ============================
     function customConfirm(message, callback) {
       const modal = $('#confirmModal');
@@ -460,7 +469,6 @@
       acceptBtn.addEventListener('click', onAccept);
       cancelBtn.addEventListener('click', onCancel);
     }
-
     function customAlert(message, callback) {
       const modal = $('#alertModal');
       $('#alertMessage').textContent = message;
@@ -475,9 +483,7 @@
       acceptBtn.addEventListener('click', onAccept);
     }
 
-    // ============================
     // Modal edición
-    // ============================
     function openEditModal(index) {
       const entry = history[index];
       if (!entry) return;
@@ -507,10 +513,7 @@
       updateUI();
       closeEditModal();
     });
-
     $('#cancelEdit').addEventListener('click', closeEditModal);
-
-    // Botón eliminar línea dentro del modal de edición
     $('#deleteLine').addEventListener('click', () => {
       const entry = history[currentEditIndex];
       if (!entry) return;
@@ -534,7 +537,6 @@
     // ============================
     // Formulario: guardado y envío
     // ============================
-    // Guardado de borrador continuo (no se pierde lo tecleado)
     $('#clientName').addEventListener('input', saveDraftForm);
     $('#amount').addEventListener('input', saveDraftForm);
     $$('input[name="paymentType"]').forEach(r => r.addEventListener('change', saveDraftForm));
@@ -565,11 +567,10 @@
         return;
       }
 
-      // Añadimos sin borrar el formulario ni el borrador (tú mandas cuándo borrar)
       history.push({ id: Date.now(), client, amount, type });
       saveHistory();
       updateUI();
-      // No hacemos reset para que no se borre nada salvo que tú lo cambies
+      // No reseteamos el formulario (no borrar nada automáticamente)
     });
 
     // Borrar historial con confirmación
@@ -579,7 +580,6 @@
         history = [];
         saveHistory();
         updateUI();
-        // No tocamos ni la fecha ni el borrador del formulario
       });
     });
 
@@ -592,10 +592,10 @@
       }
 
       const efectivoEntries = history.filter(e => e.type === 'Efectivo');
-      const tarjetaEntries = history.filter(e => e.type === 'Tarjeta');
+      const tarjetaEntries  = history.filter(e => e.type === 'Tarjeta');
       const totalEfectivo = efectivoEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const totalTarjeta = tarjetaEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const totalGeneral = totalEfectivo + totalTarjeta;
+      const totalTarjeta  = tarjetaEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const totalGeneral  = totalEfectivo + totalTarjeta;
 
       const ws_data = [];
       ws_data.push(['Liquidación diaria']);
@@ -609,12 +609,12 @@
         const row = [];
         if (i < efectivoEntries.length) {
           row.push(efectivoEntries[i].client);
-          row.push(Number(efectivoEntries[i].amount)); // número real
+          row.push(Number(efectivoEntries[i].amount));
         } else { row.push(''); row.push(''); }
         row.push('');
         if (i < tarjetaEntries.length) {
           row.push(tarjetaEntries[i].client);
-          row.push(Number(tarjetaEntries[i].amount)); // número real
+          row.push(Number(tarjetaEntries[i].amount));
         } else { row.push(''); row.push(''); }
         ws_data.push(row);
       }
@@ -623,13 +623,9 @@
       ws_data.push(['Total General', Number(totalGeneral), '', '', '']);
 
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
-
-      // Anchos de columna
       ws['!cols'] = [
         { wch: 25 }, { wch: 15 }, { wch: 3 }, { wch: 25 }, { wch: 15 }
       ];
-
-      // Merges
       ws['!merges'] = [
         { s: { r:0, c:0 }, e: { r:0, c:4 } },
         { s: { r:1, c:0 }, e: { r:1, c:4 } },
@@ -643,7 +639,7 @@
       XLSX.writeFile(wb, 'liquidacion_' + safeDate + '.xlsx');
     });
 
-    // Dropdowns (detalles)
+    // Dropdowns
     function renderDropdown(list, container) {
       clearNode(container);
       if (list.length === 0) {
@@ -663,7 +659,6 @@
         container.appendChild(ul);
       }
     }
-
     function toggleDropdownEfectivo() {
       const dropdown = $('#dropdownEfectivo');
       const other = $('#dropdownTarjeta');
@@ -672,9 +667,7 @@
         renderDropdown(efectivoEntries, dropdown);
         dropdown.style.display = 'block';
         other.style.display = 'none';
-      } else {
-        dropdown.style.display = 'none';
-      }
+      } else { dropdown.style.display = 'none'; }
     }
     function toggleDropdownTarjeta() {
       const dropdown = $('#dropdownTarjeta');
@@ -684,24 +677,16 @@
         renderDropdown(tarjetaEntries, dropdown);
         dropdown.style.display = 'block';
         other.style.display = 'none';
-      } else {
-        dropdown.style.display = 'none';
-      }
+      } else { dropdown.style.display = 'none'; }
     }
-
     $('#totalEfectivo').addEventListener('click', toggleDropdownEfectivo);
     $('#totalTarjeta').addEventListener('click', toggleDropdownTarjeta);
 
     // Sincroniza si se abre en varias pestañas
     window.addEventListener('storage', (ev) => {
-      if (ev.key === LS_KEYS.HISTORY) {
-        loadHistory();
-        updateUI();
-      } else if (ev.key === LS_KEYS.DRAFT) {
-        loadDraftForm();
-      } else if (ev.key === LS_KEYS.DATE) {
-        loadDraftDate();
-      }
+      if (ev.key === LS_KEYS.HISTORY) { loadHistory(); updateUI(); }
+      else if (ev.key === LS_KEYS.DRAFT) { loadDraftForm(); }
+      else if (ev.key === LS_KEYS.DATE) { loadDraftDate(); }
     });
   </script>
 </body>
