@@ -652,6 +652,17 @@
       const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const fileName = 'liquidacion_' + safeDate + '.xlsx';
 
+            // iOS / PWA: usar “Compartir” si está disponible (facilita enviar a Drive)
+      if ((isIOS() || isStandalone()) && navigator.share && typeof File !== 'undefined') {
+        try {
+          const file = new File([blob], fileName, { type: blob.type });
+          await navigator.share({ files: [file], title: 'Liquidación diaria', text: fileName });
+          return;
+        } catch (err) {
+          // Si el usuario cancela o no va, seguimos a descarga/abrir
+        }
+      }
+
       // Descarga estándar
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -715,4 +726,5 @@
   </script>
 </body>
 </html>
+
 
