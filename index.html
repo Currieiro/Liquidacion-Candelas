@@ -27,22 +27,18 @@
       margin: 0;
       background: var(--coffee);
       color: var(--text);
-      overscroll-behavior: none; /* evitamos “rebotes” */
+      overscroll-behavior: none;
       -webkit-overflow-scrolling: touch;
-      touch-action: pan-y; /* estable en móviles */
-    }
-
-    body {
+      touch-action: pan-y;
       font-family: Arial, sans-serif;
     }
 
-    /* Contenedor con control propio de scroll para evitar saltos de Chrome */
     .page {
       min-height: 100vh;
       padding: 20px;
       overflow-x: hidden;
       overscroll-behavior-y: none;
-      contain: content; /* reduce reflow grande */
+      contain: content;
     }
 
     header {
@@ -76,14 +72,50 @@
       width: 180px;
     }
 
+    /* Campo con botón de limpiar */
+    .field {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      flex: 1 1 200px;
+      min-width: 160px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 36px 10px 10px; /* hueco para la X */
+      font-size: 1em;
+      border: 1px solid var(--white);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--white);
+    }
+    .clear-btn {
+      position: absolute;
+      right: 8px;
+      height: 24px;
+      width: 24px;
+      border: 1px solid var(--white);
+      color: var(--white);
+      background: transparent;
+      border-radius: 50%;
+      cursor: pointer;
+      line-height: 22px;
+      font-size: 16px;
+      display: none; /* visible solo cuando hay texto */
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .clear-btn:hover { opacity: .9; }
+
     /* Formulario */
     form {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 20px;
+      align-items: center;
     }
-    form input,
     form button,
     form select {
       padding: 10px;
@@ -93,16 +125,11 @@
       background: transparent;
       color: var(--white);
     }
-    form input[type="text"],
-    form input[type="number"] {
-      flex: 1 1 200px;
-      min-width: 160px;
-    }
     .payment-method {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 0;       /* sin recuadro ni borde */
+      padding: 0;
       border: none;
       border-radius: 0;
     }
@@ -221,7 +248,6 @@
       justify-content: space-between;
       flex-wrap: wrap;
     }
-    /* Texto negro para máxima visibilidad en los botones del modal */
     .modal-buttons button {
       padding: 10px;
       cursor: pointer;
@@ -229,7 +255,7 @@
       border-radius: 6px;
       border: 1px solid #ddd;
       background: #fff;
-      color: #000;
+      color: #000; /* texto negro */
     }
     .danger     { border-color: #d9534f; }
     .primary    { border-color: #007bff; }
@@ -262,8 +288,16 @@
 
       <!-- Formulario -->
       <form id="paymentForm" autocomplete="off">
-        <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
-        <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
+        <div class="field">
+          <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
+          <button class="clear-btn" id="clearClient" type="button" aria-label="Limpiar cliente">×</button>
+        </div>
+
+        <div class="field">
+          <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
+          <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
+        </div>
+
         <div class="payment-method">
           <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
           <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
@@ -347,13 +381,8 @@
 
   <script>
     // ============================
-    // Ajustes scroll / estabilidad
+    // Utilidades
     // ============================
-    // Evita restauraciones automáticas raras
-    if ('scrollRestoration' in history) {
-      history.scrollRestoration = 'manual';
-    }
-
     const LS_KEYS = {
       HISTORY: 'history',
       DRAFT: 'draft_paymentForm',
@@ -372,6 +401,14 @@
       return parseFloat(String(input).replace(',', '.'));
     }
 
+    function isShareSupported(file) {
+      // Web Share Level 2 (con archivos)
+      return !!(navigator.share && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }));
+    }
+
+    // ============================
+    // Estado y persistencia
+    // ============================
     let historyData = [];
     let currentEditIndex = null;
 
@@ -382,44 +419,18 @@
         if (!Array.isArray(historyData)) historyData = [];
       } catch (e) { historyData = []; }
     }
-    function saveHistory() { localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(historyData)); }
-
-    // Borradores
-    function saveDraftForm() {
-      const draft = {
-        client: $('#clientName').value,
-        amount: $('#amount').value,
-        type: ($('input[name="paymentType"]:checked') || {}).value || null
-      };
-      localStorage.setItem(LS_KEYS.DRAFT, JSON.stringify(draft));
-    }
-    function loadDraftForm() {
-      try {
-        const raw = localStorage.getItem(LS_KEYS.DRAFT);
-        if (!raw) return;
-        const draft = JSON.parse(raw);
-        if (draft.client != null) $('#clientName').value = draft.client;
-        if (draft.amount != null) $('#amount').value = draft.amount;
-        if (draft.type) {
-          const r = document.querySelector(`input[name="paymentType"][value="${draft.type}"]`);
-          if (r) r.checked = true;
-        }
-      } catch (_) {}
-    }
-    function saveDraftDate() { localStorage.setItem(LS_KEYS.DATE, $('#reportDate').value); }
-    function loadDraftDate() {
-      const d = localStorage.getItem(LS_KEYS.DATE);
-      if (d) $('#reportDate').value = d;
+    function saveHistory() {
+      localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(historyData));
     }
 
+    // ============================
+    // UI
+    // ============================
     function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function makeCell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
 
     function updateUI() {
       const tbody = $('#historyTable tbody');
-      // Guardar posición de scroll del contenedor visible
-      const prev = { x: window.scrollX, y: window.scrollY };
-
       clearNode(tbody);
 
       let totalEfectivo = 0;
@@ -450,19 +461,18 @@
       $('#totalTarjeta').textContent = formatNumber(totalTarjeta);
       $('#totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
 
-      // Re-bind edición
+      // Bind edición
       $$('.editBtn').forEach(btn => {
         btn.addEventListener('click', () => {
           currentEditIndex = parseInt(btn.dataset.index, 10);
           openEditModal(currentEditIndex);
         });
       });
-
-      // Restaurar scroll sin animación (evita “salto” a top)
-      window.scrollTo(prev.x, prev.y);
     }
 
-    // Modales básicos
+    // ============================
+    // Modales
+    // ============================
     function customConfirm(message, callback) {
       const modal = $('#confirmModal');
       $('#confirmMessage').textContent = message;
@@ -539,35 +549,39 @@
       });
     });
 
-    // Init
+    // ============================
+    // Inicialización
+    // ============================
     loadHistory();
-    loadDraftForm();
-    loadDraftDate();
     updateUI();
 
-    // Form: borrador y envío
-    $('#clientName').addEventListener('input', saveDraftForm);
-    $('#amount').addEventListener('input', saveDraftForm);
-    $$('input[name="paymentType"]').forEach(r => r.addEventListener('change', saveDraftForm));
-    $('#reportDate').addEventListener('input', saveDraftDate);
+    // ============================
+    // Formulario: clear buttons, envío y reset total
+    // ============================
+    function toggleClearBtn(inputEl, btnEl) {
+      btnEl.style.display = inputEl.value ? 'inline-flex' : 'none';
+    }
 
-    // Máscara fecha
-    $('#reportDate').addEventListener('input', function() {
-      let input = this.value.replace(/\D/g, '');
-      if (input.length > 2 && input.length <= 4) {
-        input = input.slice(0,2) + '/' + input.slice(2);
-      } else if (input.length > 4) {
-        input = input.slice(0,2) + '/' + input.slice(2,4) + '/' + input.slice(4,8);
-      }
-      this.value = input;
-      saveDraftDate();
-    });
+    const clientInput = $('#clientName');
+    const amountInput = $('#amount');
+    const clearClientBtn = $('#clearClient');
+    const clearAmountBtn = $('#clearAmount');
+
+    clientInput.addEventListener('input', () => toggleClearBtn(clientInput, clearClientBtn));
+    amountInput.addEventListener('input', () => toggleClearBtn(amountInput, clearAmountBtn));
+
+    clearClientBtn.addEventListener('click', () => { clientInput.value = ''; toggleClearBtn(clientInput, clearClientBtn); clientInput.focus(); });
+    clearAmountBtn.addEventListener('click', () => { amountInput.value = ''; toggleClearBtn(amountInput, clearAmountBtn); amountInput.focus(); });
+
+    // Mostrar/ocultar X inicial
+    toggleClearBtn(clientInput, clearClientBtn);
+    toggleClearBtn(amountInput, clearAmountBtn);
 
     $('#paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
-      const client = $('#clientName').value.trim();
-      const amount = parseAmount($('#amount').value);
+      const client = clientInput.value.trim();
+      const amount = parseAmount(amountInput.value);
       const type = ($('input[name="paymentType"]:checked') || {}).value;
 
       if (!client || isNaN(amount) || !type) {
@@ -578,9 +592,17 @@
       historyData.push({ id: Date.now(), client, amount, type });
       saveHistory();
       updateUI();
-      // sin reset: tú decides cuándo borrar campos
+
+      // RESET TOTAL: cliente, importe y forma de pago
+      this.reset();
+      // re-ocultar las X tras reset
+      toggleClearBtn(clientInput, clearClientBtn);
+      toggleClearBtn(amountInput, clearAmountBtn);
+      // opcional: enfocamos al cliente para velocidad
+      clientInput.focus();
     });
 
+    // Borrar historial con confirmación
     $('#clearHistory').addEventListener('click', function() {
       customConfirm('¿Estás seguro de borrar TODO el historial?', (ok) => {
         if (!ok) return;
@@ -590,10 +612,9 @@
       });
     });
 
+    // ============================
     // Descargar / Compartir Excel
-    function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
-    function isStandalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
-
+    // ============================
     $('#downloadExcel').addEventListener('click', async function() {
       const reportDate = $('#reportDate').value.trim();
       if (!/^\d{2}\/\d{2}\/\d{4}$/.test(reportDate)) {
@@ -632,6 +653,7 @@
       ws_data.push(['Total Efectivo', Number(totalEfectivo), '', 'Total Tarjeta', Number(totalTarjeta)]);
       ws_data.push(['Total General', Number(totalGeneral), '', '', '']);
 
+      const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(ws_data);
       ws['!cols'] = [
         { wch: 25 }, { wch: 15 }, { wch: 3 }, { wch: 25 }, { wch: 15 }
@@ -642,28 +664,25 @@
         { s: { r:3, c:0 }, e: { r:3, c:1 } },
         { s: { r:3, c:3 }, e: { r:3, c:4 } }
       ];
-
-      const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Historial');
-      const safeDate = reportDate.replace(/\//g, '-');
 
-      // Generamos ArrayBuffer para poder compartir o descargar
+      const safeDate = reportDate.replace(/\//g, '-');
       const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const fileName = 'liquidacion_' + safeDate + '.xlsx';
 
-            // iOS / PWA: usar “Compartir” si está disponible (facilita enviar a Drive)
-      if ((isIOS() || isStandalone()) && navigator.share && typeof File !== 'undefined') {
-        try {
-          const file = new File([blob], fileName, { type: blob.type });
+      // 1) Intento compartir con archivo (si el navegador lo soporta)
+      try {
+        const file = new File([blob], fileName, { type: blob.type });
+        if (isShareSupported(file)) {
           await navigator.share({ files: [file], title: 'Liquidación diaria', text: fileName });
-          return;
-        } catch (err) {
-          // Si el usuario cancela o no va, seguimos a descarga/abrir
+          return; // compartido, salimos
         }
+      } catch (e) {
+        // Si el usuario cancela compartir, seguimos al plan B (descarga)
       }
 
-      // Descarga estándar
+      // 2) Fallback: descarga directa
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -674,7 +693,9 @@
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     });
 
+    // ============================
     // Dropdowns
+    // ============================
     function renderDropdown(list, container) {
       clearNode(container);
       if (list.length === 0) {
@@ -716,15 +737,6 @@
     }
     $('#totalEfectivo').addEventListener('click', toggleDropdownEfectivo);
     $('#totalTarjeta').addEventListener('click', toggleDropdownTarjeta);
-
-    // Sincroniza si se abre en varias pestañas
-    window.addEventListener('storage', (ev) => {
-      if (ev.key === LS_KEYS.HISTORY) { loadHistory(); updateUI(); }
-      else if (ev.key === LS_KEYS.DRAFT) { loadDraftForm(); }
-      else if (ev.key === LS_KEYS.DATE) { loadDraftDate(); }
-    });
   </script>
 </body>
 </html>
-
-
