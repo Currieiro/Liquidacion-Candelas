@@ -22,19 +22,27 @@
     }
     * { box-sizing: border-box; }
 
-    /* Evitar rebotes/jumps al llegar al fondo o al tope */
     html, body {
       height: 100%;
       margin: 0;
-      overscroll-behavior-y: none; /* clave para cortar el “rebote” */
       background: var(--coffee);
       color: var(--text);
-      -webkit-overflow-scrolling: touch; /* scroll fluido en iOS */
+      overscroll-behavior: none; /* evitamos “rebotes” */
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y; /* estable en móviles */
     }
 
     body {
       font-family: Arial, sans-serif;
+    }
+
+    /* Contenedor con control propio de scroll para evitar saltos de Chrome */
+    .page {
+      min-height: 100vh;
       padding: 20px;
+      overflow-x: hidden;
+      overscroll-behavior-y: none;
+      contain: content; /* reduce reflow grande */
     }
 
     header {
@@ -94,9 +102,9 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 0;       /* sin recuadro */
-      border: none;     /* quitado */
-      border-radius: 0; /* limpio */
+      padding: 0;       /* sin recuadro ni borde */
+      border: none;
+      border-radius: 0;
     }
     .payment-method label { cursor: pointer; }
 
@@ -177,7 +185,7 @@
       height: 100%;
       overflow: auto;
       background-color: rgba(0,0,0,0.5);
-      overscroll-behavior-y: none; /* también dentro del modal */
+      overscroll-behavior-y: none;
     }
     .modal-content {
       background-color: var(--white);
@@ -213,7 +221,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
     }
-    /* Botones del modal con texto negro para máxima visibilidad */
+    /* Texto negro para máxima visibilidad en los botones del modal */
     .modal-buttons button {
       padding: 10px;
       cursor: pointer;
@@ -221,7 +229,7 @@
       border-radius: 6px;
       border: 1px solid #ddd;
       background: #fff;
-      color: #000; /* texto negro */
+      color: #000;
     }
     .danger     { border-color: #d9534f; }
     .primary    { border-color: #007bff; }
@@ -240,56 +248,58 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Liquidación diaria</h1>
-  </header>
+  <div class="page">
+    <header>
+      <h1>Liquidación diaria</h1>
+    </header>
 
-  <div class="container">
-    <!-- Fecha -->
-    <div class="date-input">
-      <label for="reportDate">Fecha (DD/MM/AAAA):</label>
-      <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric">
-    </div>
-
-    <!-- Formulario -->
-    <form id="paymentForm" autocomplete="off">
-      <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
-      <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
-      <div class="payment-method">
-        <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
-        <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+    <div class="container">
+      <!-- Fecha -->
+      <div class="date-input">
+        <label for="reportDate">Fecha (DD/MM/AAAA):</label>
+        <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric">
       </div>
-      <button type="submit">Agregar</button>
-    </form>
 
-    <!-- Tabla -->
-    <table id="historyTable">
-      <thead>
-        <tr>
-          <th>Cliente</th>
-          <th>Importe</th>
-          <th>Forma de pago</th>
-          <th class="acciones">Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+      <!-- Formulario -->
+      <form id="paymentForm" autocomplete="off">
+        <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
+        <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
+        <div class="payment-method">
+          <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
+          <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+        </div>
+        <button type="submit">Agregar</button>
+      </form>
 
-    <!-- Resumen -->
-    <div class="summary">
-      <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
-      <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
-      <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
-    </div>
+      <!-- Tabla -->
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Importe</th>
+            <th>Forma de pago</th>
+            <th class="acciones">Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-    <!-- Dropdowns -->
-    <div id="dropdownEfectivo" class="dropdown"></div>
-    <div id="dropdownTarjeta" class="dropdown"></div>
+      <!-- Resumen -->
+      <div class="summary">
+        <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
+        <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
+        <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
+      </div>
 
-    <!-- Botones -->
-    <div class="buttons">
-      <button id="downloadExcel">Descargar Excel</button>
-      <button id="clearHistory">Borrar Historial</button>
+      <!-- Dropdowns -->
+      <div id="dropdownEfectivo" class="dropdown"></div>
+      <div id="dropdownTarjeta" class="dropdown"></div>
+
+      <!-- Botones -->
+      <div class="buttons">
+        <button id="downloadExcel">Descargar / Compartir Excel</button>
+        <button id="clearHistory">Borrar Historial</button>
+      </div>
     </div>
   </div>
 
@@ -337,8 +347,13 @@
 
   <script>
     // ============================
-    // Utilidades
+    // Ajustes scroll / estabilidad
     // ============================
+    // Evita restauraciones automáticas raras
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+
     const LS_KEYS = {
       HISTORY: 'history',
       DRAFT: 'draft_paymentForm',
@@ -357,22 +372,17 @@
       return parseFloat(String(input).replace(',', '.'));
     }
 
-    // ============================
-    // Estado y persistencia
-    // ============================
-    let history = [];
+    let historyData = [];
     let currentEditIndex = null;
 
     function loadHistory() {
       try {
         const raw = localStorage.getItem(LS_KEYS.HISTORY);
-        history = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(history)) history = [];
-      } catch (e) { history = []; }
+        historyData = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(historyData)) historyData = [];
+      } catch (e) { historyData = []; }
     }
-    function saveHistory() {
-      localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(history));
-    }
+    function saveHistory() { localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(historyData)); }
 
     // Borradores
     function saveDraftForm() {
@@ -402,20 +412,20 @@
       if (d) $('#reportDate').value = d;
     }
 
-    // ============================
-    // UI
-    // ============================
     function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function makeCell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
 
     function updateUI() {
       const tbody = $('#historyTable tbody');
+      // Guardar posición de scroll del contenedor visible
+      const prev = { x: window.scrollX, y: window.scrollY };
+
       clearNode(tbody);
 
       let totalEfectivo = 0;
       let totalTarjeta = 0;
 
-      history.forEach((entry, index) => {
+      historyData.forEach((entry, index) => {
         const tr = document.createElement('tr');
         tr.appendChild(makeCell(entry.client));
         tr.appendChild(makeCell(formatNumber(entry.amount)));
@@ -440,18 +450,19 @@
       $('#totalTarjeta').textContent = formatNumber(totalTarjeta);
       $('#totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
 
-      // Bind edición
+      // Re-bind edición
       $$('.editBtn').forEach(btn => {
         btn.addEventListener('click', () => {
           currentEditIndex = parseInt(btn.dataset.index, 10);
           openEditModal(currentEditIndex);
         });
       });
+
+      // Restaurar scroll sin animación (evita “salto” a top)
+      window.scrollTo(prev.x, prev.y);
     }
 
-    // ============================
-    // Modales
-    // ============================
+    // Modales básicos
     function customConfirm(message, callback) {
       const modal = $('#confirmModal');
       $('#confirmMessage').textContent = message;
@@ -487,7 +498,7 @@
 
     // Modal edición
     function openEditModal(index) {
-      const entry = history[index];
+      const entry = historyData[index];
       if (!entry) return;
       $('#editClient').value = entry.client;
       $('#editAmount').value = String(entry.amount);
@@ -508,43 +519,39 @@
         customAlert('Por favor, ingresa datos válidos.', () => {});
         return;
       }
-      history[currentEditIndex].client = newClient;
-      history[currentEditIndex].amount = newAmount;
-      history[currentEditIndex].type = newPayment;
+      historyData[currentEditIndex].client = newClient;
+      historyData[currentEditIndex].amount = newAmount;
+      historyData[currentEditIndex].type = newPayment;
       saveHistory();
       updateUI();
       closeEditModal();
     });
     $('#cancelEdit').addEventListener('click', closeEditModal);
     $('#deleteLine').addEventListener('click', () => {
-      const entry = history[currentEditIndex];
+      const entry = historyData[currentEditIndex];
       if (!entry) return;
       customConfirm(`¿Eliminar la línea de "${entry.client}" (${formatNumber(entry.amount)} - ${entry.type})?`, (ok) => {
         if (!ok) return;
-        history.splice(currentEditIndex, 1);
+        historyData.splice(currentEditIndex, 1);
         saveHistory();
         updateUI();
         closeEditModal();
       });
     });
 
-    // ============================
-    // Inicialización
-    // ============================
+    // Init
     loadHistory();
     loadDraftForm();
     loadDraftDate();
     updateUI();
 
-    // ============================
-    // Formulario: guardado y envío
-    // ============================
+    // Form: borrador y envío
     $('#clientName').addEventListener('input', saveDraftForm);
     $('#amount').addEventListener('input', saveDraftForm);
     $$('input[name="paymentType"]').forEach(r => r.addEventListener('change', saveDraftForm));
     $('#reportDate').addEventListener('input', saveDraftDate);
 
-    // Máscara de fecha
+    // Máscara fecha
     $('#reportDate').addEventListener('input', function() {
       let input = this.value.replace(/\D/g, '');
       if (input.length > 2 && input.length <= 4) {
@@ -556,7 +563,6 @@
       saveDraftDate();
     });
 
-    // Envío (sin limpiar el formulario automáticamente)
     $('#paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -569,31 +575,34 @@
         return;
       }
 
-      history.push({ id: Date.now(), client, amount, type });
+      historyData.push({ id: Date.now(), client, amount, type });
       saveHistory();
       updateUI();
+      // sin reset: tú decides cuándo borrar campos
     });
 
-    // Borrar historial con confirmación
     $('#clearHistory').addEventListener('click', function() {
       customConfirm('¿Estás seguro de borrar TODO el historial?', (ok) => {
         if (!ok) return;
-        history = [];
+        historyData = [];
         saveHistory();
         updateUI();
       });
     });
 
-    // Descargar Excel
-    $('#downloadExcel').addEventListener('click', function() {
+    // Descargar / Compartir Excel
+    function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+    function isStandalone() { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+
+    $('#downloadExcel').addEventListener('click', async function() {
       const reportDate = $('#reportDate').value.trim();
       if (!/^\d{2}\/\d{2}\/\d{4}$/.test(reportDate)) {
         customAlert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.', () => {});
         return;
       }
 
-      const efectivoEntries = history.filter(e => e.type === 'Efectivo');
-      const tarjetaEntries  = history.filter(e => e.type === 'Tarjeta');
+      const efectivoEntries = historyData.filter(e => e.type === 'Efectivo');
+      const tarjetaEntries  = historyData.filter(e => e.type === 'Tarjeta');
       const totalEfectivo = efectivoEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const totalTarjeta  = tarjetaEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const totalGeneral  = totalEfectivo + totalTarjeta;
@@ -637,7 +646,32 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Historial');
       const safeDate = reportDate.replace(/\//g, '-');
-      XLSX.writeFile(wb, 'liquidacion_' + safeDate + '.xlsx');
+
+      // Generamos ArrayBuffer para poder compartir o descargar
+      const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const fileName = 'liquidacion_' + safeDate + '.xlsx';
+
+      // iOS / PWA: usar “Compartir” si está disponible (facilita enviar a Drive)
+      if ((isIOS() || isStandalone()) && navigator.share && typeof File !== 'undefined') {
+        try {
+          const file = new File([blob], fileName, { type: blob.type });
+          await navigator.share({ files: [file], title: 'Liquidación diaria', text: fileName });
+          return;
+        } catch (err) {
+          // Si el usuario cancela o no va, seguimos a descarga/abrir
+        }
+      }
+
+      // Descarga estándar
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     });
 
     // Dropdowns
@@ -664,7 +698,7 @@
       const dropdown = $('#dropdownEfectivo');
       const other = $('#dropdownTarjeta');
       if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        const efectivoEntries = history.filter(e => e.type === 'Efectivo');
+        const efectivoEntries = historyData.filter(e => e.type === 'Efectivo');
         renderDropdown(efectivoEntries, dropdown);
         dropdown.style.display = 'block';
         other.style.display = 'none';
@@ -674,7 +708,7 @@
       const dropdown = $('#dropdownTarjeta');
       const other = $('#dropdownEfectivo');
       if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        const tarjetaEntries = history.filter(e => e.type === 'Tarjeta');
+        const tarjetaEntries = historyData.filter(e => e.type === 'Tarjeta');
         renderDropdown(tarjetaEntries, dropdown);
         dropdown.style.display = 'block';
         other.style.display = 'none';
