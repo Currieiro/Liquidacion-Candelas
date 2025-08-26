@@ -16,7 +16,6 @@
       --orange: #FFA500;
       --orange-dark: #f0a500;
       --white: #fff;
-      --text: #fff;
       --black: #000;
       --blue: #008CBA;
     }
@@ -26,7 +25,7 @@
       height: 100%;
       margin: 0;
       background: var(--coffee);
-      color: var(--text);
+      color: var(--white);
       overscroll-behavior: none;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
@@ -36,9 +35,6 @@
     .page {
       min-height: 100vh;
       padding: 20px;
-      overflow-x: hidden;
-      overscroll-behavior-y: none;
-      contain: content;
     }
 
     header {
@@ -50,10 +46,7 @@
       margin-bottom: 16px;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-    }
+    .container { max-width: 900px; margin: 0 auto; }
 
     .date-input {
       margin-bottom: 20px;
@@ -72,7 +65,7 @@
       width: 180px;
     }
 
-    /* Campo con botón de limpiar */
+    /* Campo con botón X */
     .field {
       position: relative;
       display: inline-flex;
@@ -82,7 +75,7 @@
     }
     .field input {
       width: 100%;
-      padding: 10px 36px 10px 10px; /* hueco para la X */
+      padding: 10px 36px 10px 10px;
       font-size: 1em;
       border: 1px solid var(--white);
       border-radius: 5px;
@@ -101,14 +94,12 @@
       cursor: pointer;
       line-height: 22px;
       font-size: 16px;
-      display: none; /* visible solo cuando hay texto */
+      display: none;
       align-items: center;
       justify-content: center;
       padding: 0;
     }
-    .clear-btn:hover { opacity: .9; }
 
-    /* Formulario */
     form {
       display: flex;
       flex-wrap: wrap;
@@ -116,8 +107,7 @@
       margin-bottom: 20px;
       align-items: center;
     }
-    form button,
-    form select {
+    form button {
       padding: 10px;
       font-size: 1em;
       border: 1px solid var(--white);
@@ -129,22 +119,13 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 0;
-      border: none;
-      border-radius: 0;
     }
-    .payment-method label { cursor: pointer; }
-
-    /* Botón Agregar */
     form button[type="submit"] {
       background-color: var(--blue);
       color: var(--white);
       border: 1px solid var(--white);
-      border-radius: 5px;
-      cursor: pointer;
     }
 
-    /* Tabla */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -155,9 +136,6 @@
     }
     table, th, td { border: 1px solid var(--white); }
     th, td { padding: 10px; text-align: center; }
-    th.acciones { width: 140px; }
-
-    /* Botón Editar igual que Agregar */
     .editBtn {
       border: 1px solid var(--white);
       background-color: var(--blue);
@@ -167,7 +145,6 @@
       cursor: pointer;
     }
 
-    /* Resumen */
     .summary {
       display: flex;
       justify-content: space-around;
@@ -178,10 +155,8 @@
       border: 1px solid var(--white);
       border-radius: 5px;
     }
-    .summary div { color: var(--white); }
     #totalEfectivo, #totalTarjeta { cursor: pointer; text-decoration: underline; }
 
-    /* Botonera inferior */
     .buttons {
       display: flex;
       justify-content: space-between;
@@ -192,7 +167,6 @@
     .buttons button {
       flex: 1;
       min-width: 180px;
-      margin: 5px 0;
       padding: 10px;
       background-color: var(--orange);
       border: none;
@@ -200,19 +174,13 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    .buttons button:hover { opacity: 0.9; }
 
-    /* Modales */
     .modal {
       display: none;
       position: fixed;
       z-index: 1000;
       inset: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
       background-color: rgba(0,0,0,0.5);
-      overscroll-behavior-y: none;
     }
     .modal-content {
       background-color: var(--white);
@@ -221,47 +189,27 @@
       padding: 20px;
       border: 1px solid #888;
       width: 320px;
-      max-width: calc(100% - 24px);
       border-radius: 8px;
       text-align: center;
-    }
-    .modal-content h2 { margin: 0 0 6px 0; }
-    .modal-content label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-      text-align: left;
-    }
-    .modal-content input, .modal-content select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      color: #000;
-      background: #fff;
     }
     .modal-buttons {
       margin-top: 16px;
       display: flex;
       gap: 8px;
-      justify-content: space-between;
       flex-wrap: wrap;
     }
     .modal-buttons button {
       padding: 10px;
-      cursor: pointer;
       flex: 1;
       border-radius: 6px;
       border: 1px solid #ddd;
       background: #fff;
-      color: #000; /* texto negro */
+      color: #000;
     }
-    .danger     { border-color: #d9534f; }
-    .primary    { border-color: #007bff; }
-    .secondary  { border-color: #6c757d; }
+    .danger { border-color: #d9534f; }
+    .primary { border-color: #007bff; }
+    .secondary { border-color: #6c757d; }
 
-    /* Dropdowns */
     .dropdown {
       display:none;
       margin-top: 10px;
@@ -269,35 +217,30 @@
       border-radius: 5px;
       padding: 10px;
       background-color: var(--orange-dark);
-      color: var(--white);
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <header>
-      <h1>Liquidación diaria</h1>
-    </header>
+    <header><h1>Liquidación diaria</h1></header>
 
     <div class="container">
       <!-- Fecha -->
       <div class="date-input">
         <label for="reportDate">Fecha (DD/MM/AAAA):</label>
-        <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric">
+        <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric">
       </div>
 
       <!-- Formulario -->
-      <form id="paymentForm" autocomplete="off">
+      <form id="paymentForm">
         <div class="field">
-          <input type="text" id="clientName" placeholder="Nombre del cliente" required autocomplete="off">
-          <button class="clear-btn" id="clearClient" type="button" aria-label="Limpiar cliente">×</button>
+          <input type="text" id="clientName" placeholder="Nombre del cliente" required>
+          <button class="clear-btn" id="clearClient" type="button">×</button>
         </div>
-
         <div class="field">
-          <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal" autocomplete="off">
-          <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
+          <input type="number" id="amount" placeholder="Importe cobrado" required step="0.01" inputmode="decimal">
+          <button class="clear-btn" id="clearAmount" type="button">×</button>
         </div>
-
         <div class="payment-method">
           <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
           <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
@@ -306,30 +249,19 @@
       </form>
 
       <!-- Tabla -->
-      <table id="historyTable">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Importe</th>
-            <th>Forma de pago</th>
-            <th class="acciones">Acciones</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <table id="historyTable"><thead>
+        <tr><th>Cliente</th><th>Importe</th><th>Forma de pago</th><th>Acciones</th></tr>
+      </thead><tbody></tbody></table>
 
-      <!-- Resumen -->
       <div class="summary">
         <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
         <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
         <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
       </div>
 
-      <!-- Dropdowns -->
       <div id="dropdownEfectivo" class="dropdown"></div>
       <div id="dropdownTarjeta" class="dropdown"></div>
 
-      <!-- Botones -->
       <div class="buttons">
         <button id="downloadExcel">Descargar / Compartir Excel</button>
         <button id="clearHistory">Borrar Historial</button>
@@ -337,406 +269,112 @@
     </div>
   </div>
 
-  <!-- Modal edición -->
-  <div id="editModal" class="modal" aria-hidden="true">
+  <!-- Modales -->
+  <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Editar entrada</h2>
-      <label for="editClient">Cliente</label>
-      <input type="text" id="editClient" />
-      <label for="editAmount">Importe</label>
-      <input type="number" id="editAmount" step="0.01" inputmode="decimal" />
-      <label for="editPayment">Forma de pago</label>
-      <select id="editPayment">
-        <option value="Efectivo">Efectivo</option>
-        <option value="Tarjeta">Tarjeta</option>
-      </select>
+      <label>Cliente</label><input type="text" id="editClient">
+      <label>Importe</label><input type="number" id="editAmount" step="0.01">
+      <label>Forma de pago</label>
+      <select id="editPayment"><option>Efectivo</option><option>Tarjeta</option></select>
       <div class="modal-buttons">
-        <button id="deleteLine" class="danger" type="button">Eliminar línea</button>
-        <button id="saveEdit" class="primary" type="button">Guardar</button>
-        <button id="cancelEdit" class="secondary" type="button">Cancelar</button>
+        <button id="deleteLine" class="danger">Eliminar línea</button>
+        <button id="saveEdit" class="primary">Guardar</button>
+        <button id="cancelEdit" class="secondary">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal confirmación -->
-  <div id="confirmModal" class="modal" aria-hidden="true">
-    <div class="modal-content">
-      <p id="confirmMessage">Mensaje de confirmación</p>
-      <div class="modal-buttons">
-        <button id="confirmAccept" class="primary" type="button">Aceptar</button>
-        <button id="confirmCancel" class="secondary" type="button">Cancelar</button>
-      </div>
+  <div id="confirmModal" class="modal"><div class="modal-content">
+    <p id="confirmMessage"></p>
+    <div class="modal-buttons">
+      <button id="confirmAccept" class="primary">Aceptar</button>
+      <button id="confirmCancel" class="secondary">Cancelar</button>
     </div>
-  </div>
+  </div></div>
 
-  <!-- Modal alerta -->
-  <div id="alertModal" class="modal" aria-hidden="true">
-    <div class="modal-content">
-      <p id="alertMessage">Mensaje de alerta</p>
-      <div class="modal-buttons">
-        <button id="alertAccept" class="primary" type="button">Aceptar</button>
-      </div>
-    </div>
-  </div>
+  <div id="alertModal" class="modal"><div class="modal-content">
+    <p id="alertMessage"></p>
+    <div class="modal-buttons"><button id="alertAccept" class="primary">Aceptar</button></div>
+  </div></div>
 
-  <script>
-    // ============================
-    // Utilidades
-    // ============================
-    const LS_KEYS = {
-      HISTORY: 'history',
-      DRAFT: 'draft_paymentForm',
-      DATE: 'draft_reportDate'
-    };
+<script>
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-    const $ = (sel, ctx = document) => ctx.querySelector(sel);
-    const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+function formatNumber(num){return Number(num||0).toFixed(2).replace('.',',');}
+function parseAmount(val){return parseFloat(String(val).replace(',','.'));}
 
-    function formatNumber(num) {
-      const n = (typeof num === 'number') ? num : parseFloat(String(num).replace(',', '.')) || 0;
-      return n.toFixed(2).replace('.', ',');
-    }
-    function parseAmount(input) {
-      if (input == null) return NaN;
-      return parseFloat(String(input).replace(',', '.'));
-    }
+let historyData=[]; let currentEditIndex=null;
+function loadHistory(){historyData=JSON.parse(localStorage.getItem('history')||'[]');}
+function saveHistory(){localStorage.setItem('history',JSON.stringify(historyData));}
+function clearNode(n){while(n.firstChild)n.removeChild(n.firstChild);}
 
-    function isShareSupported(file) {
-      // Web Share Level 2 (con archivos)
-      return !!(navigator.share && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] }));
-    }
+function updateUI(){
+  const tb=$('#historyTable tbody'); clearNode(tb);
+  let tE=0,tT=0;
+  historyData.forEach((e,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${e.client}</td><td>${formatNumber(e.amount)}</td><td>${e.type}</td>
+      <td><button class="editBtn" data-i="${i}">Editar</button></td>`;
+    tb.appendChild(tr);
+    if(e.type==="Efectivo")tE+=+e.amount;else tT+=+e.amount;
+  });
+  $('#totalEfectivo').textContent=formatNumber(tE);
+  $('#totalTarjeta').textContent=formatNumber(tT);
+  $('#totalGeneral').textContent=formatNumber(tE+tT);
+  $$('.editBtn').forEach(b=>b.onclick=()=>{currentEditIndex=+b.dataset.i;openEditModal(currentEditIndex);});
+}
 
-    // ============================
-    // Estado y persistencia
-    // ============================
-    let historyData = [];
-    let currentEditIndex = null;
+function openEditModal(i){const e=historyData[i];$('#editClient').value=e.client;$('#editAmount').value=e.amount;$('#editPayment').value=e.type;$('#editModal').style.display='block';}
+function closeEditModal(){$('#editModal').style.display='none';currentEditIndex=null;}
 
-    function loadHistory() {
-      try {
-        const raw = localStorage.getItem(LS_KEYS.HISTORY);
-        historyData = raw ? JSON.parse(raw) : [];
-        if (!Array.isArray(historyData)) historyData = [];
-      } catch (e) { historyData = []; }
-    }
-    function saveHistory() {
-      localStorage.setItem(LS_KEYS.HISTORY, JSON.stringify(historyData));
-    }
+$('#saveEdit').onclick=()=>{let c=$('#editClient').value.trim(),a=parseAmount($('#editAmount').value),t=$('#editPayment').value;if(!c||isNaN(a))return;historyData[currentEditIndex]={client:c,amount:a,type:t};saveHistory();updateUI();closeEditModal();};
+$('#cancelEdit').onclick=closeEditModal;
+$('#deleteLine').onclick=()=>{historyData.splice(currentEditIndex,1);saveHistory();updateUI();closeEditModal();};
 
-    // ============================
-    // UI
-    // ============================
-    function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
-    function makeCell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
+$('#paymentForm').onsubmit=e=>{
+  e.preventDefault();
+  const c=$('#clientName').value.trim(),a=parseAmount($('#amount').value),t=$('input[name="paymentType"]:checked')?.value;
+  if(!c||isNaN(a)||!t)return;
+  historyData.push({client:c,amount:a,type:t});
+  saveHistory();updateUI();
+  e.target.reset();
+  $('#clientName').value='';$('#amount').value='';
+};
 
-    function updateUI() {
-      const tbody = $('#historyTable tbody');
-      clearNode(tbody);
+$('#clearHistory').onclick=()=>{historyData=[];saveHistory();updateUI();};
 
-      let totalEfectivo = 0;
-      let totalTarjeta = 0;
+$('#clearClient').onclick=()=>{$('#clientName').value='';$('#clientName').focus();};
+$('#clearAmount').onclick=()=>{$('#amount').value='';$('#amount').focus();};
+$('#clientName').oninput=()=>$('#clearClient').style.display=$('#clientName').value?'inline-flex':'none';
+$('#amount').oninput=()=>$('#clearAmount').style.display=$('#amount').value?'inline-flex':'none';
 
-      historyData.forEach((entry, index) => {
-        const tr = document.createElement('tr');
-        tr.appendChild(makeCell(entry.client));
-        tr.appendChild(makeCell(formatNumber(entry.amount)));
-        tr.appendChild(makeCell(entry.type));
+function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
+$('#downloadExcel').onclick=async()=>{
+  const d=$('#reportDate').value;
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(d))return alert("Fecha inválida");
+  const ws_data=[["Liquidación diaria"],["Fecha: "+d],[],["Efectivo","","","Tarjeta",""],["Cliente","Importe","","Cliente","Importe"]];
+  const ef=historyData.filter(e=>e.type=="Efectivo"),ta=historyData.filter(e=>e.type=="Tarjeta");
+  const max=Math.max(ef.length,ta.length);
+  for(let i=0;i<max;i++){ws_data.push([ef[i]?.client||"",ef[i]?.amount||"","",ta[i]?.client||"",ta[i]?.amount||""]); }
+  ws_data.push([]);ws_data.push(["Total Efectivo",ef.reduce((s,e)=>s+ +e.amount,0),"","Total Tarjeta",ta.reduce((s,e)=>s+ +e.amount,0)]);
+  ws_data.push(["Total General",ef.reduce((s,e)=>s+ +e.amount,0)+ta.reduce((s,e)=>s+ +e.amount,0),"","",""]);
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(ws_data);XLSX.utils.book_append_sheet(wb,ws,"Historial");
+  const blob=new Blob([XLSX.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),f=new File([blob],'liquidacion_'+d.replace(/\//g,'-')+'.xlsx',{type:blob.type});
+  try{if(isShareSupported(f)){await navigator.share({files:[f],title:'Liquidación diaria'});return;}}catch(e){}
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=f.name;a.click();URL.revokeObjectURL(url);
+};
 
-        const tdAcc = document.createElement('td');
-        const btnEdit = document.createElement('button');
-        btnEdit.type = 'button';
-        btnEdit.className = 'editBtn';
-        btnEdit.textContent = 'Editar';
-        btnEdit.dataset.index = String(index);
-        tdAcc.appendChild(btnEdit);
-        tr.appendChild(tdAcc);
+// Máscara de fecha: escribe solo números, añade las barras
+$('#reportDate').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>2&&v.length<=4)v=v.slice(0,2)+'/'+v.slice(2);
+  else if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8);
+  this.value=v;
+});
 
-        tbody.appendChild(tr);
-
-        if (entry.type === 'Efectivo') totalEfectivo += Number(entry.amount) || 0;
-        else totalTarjeta += Number(entry.amount) || 0;
-      });
-
-      $('#totalEfectivo').textContent = formatNumber(totalEfectivo);
-      $('#totalTarjeta').textContent = formatNumber(totalTarjeta);
-      $('#totalGeneral').textContent = formatNumber(totalEfectivo + totalTarjeta);
-
-      // Bind edición
-      $$('.editBtn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          currentEditIndex = parseInt(btn.dataset.index, 10);
-          openEditModal(currentEditIndex);
-        });
-      });
-    }
-
-    // ============================
-    // Modales
-    // ============================
-    function customConfirm(message, callback) {
-      const modal = $('#confirmModal');
-      $('#confirmMessage').textContent = message;
-      modal.style.display = 'block';
-
-      const acceptBtn = $('#confirmAccept');
-      const cancelBtn = $('#confirmCancel');
-
-      function clean() {
-        acceptBtn.removeEventListener('click', onAccept);
-        cancelBtn.removeEventListener('click', onCancel);
-        modal.style.display = 'none';
-      }
-      function onAccept() { clean(); callback(true); }
-      function onCancel() { clean(); callback(false); }
-
-      acceptBtn.addEventListener('click', onAccept);
-      cancelBtn.addEventListener('click', onCancel);
-    }
-    function customAlert(message, callback) {
-      const modal = $('#alertModal');
-      $('#alertMessage').textContent = message;
-      modal.style.display = 'block';
-
-      const acceptBtn = $('#alertAccept');
-      function onAccept() {
-        acceptBtn.removeEventListener('click', onAccept);
-        modal.style.display = 'none';
-        if (callback) callback();
-      }
-      acceptBtn.addEventListener('click', onAccept);
-    }
-
-    // Modal edición
-    function openEditModal(index) {
-      const entry = historyData[index];
-      if (!entry) return;
-      $('#editClient').value = entry.client;
-      $('#editAmount').value = String(entry.amount);
-      $('#editPayment').value = entry.type;
-      $('#editModal').style.display = 'block';
-    }
-    function closeEditModal() {
-      $('#editModal').style.display = 'none';
-      currentEditIndex = null;
-    }
-
-    $('#saveEdit').addEventListener('click', () => {
-      const newClient = $('#editClient').value.trim();
-      const newAmount = parseAmount($('#editAmount').value);
-      const newPayment = $('#editPayment').value;
-
-      if (!newClient || isNaN(newAmount)) {
-        customAlert('Por favor, ingresa datos válidos.', () => {});
-        return;
-      }
-      historyData[currentEditIndex].client = newClient;
-      historyData[currentEditIndex].amount = newAmount;
-      historyData[currentEditIndex].type = newPayment;
-      saveHistory();
-      updateUI();
-      closeEditModal();
-    });
-    $('#cancelEdit').addEventListener('click', closeEditModal);
-    $('#deleteLine').addEventListener('click', () => {
-      const entry = historyData[currentEditIndex];
-      if (!entry) return;
-      customConfirm(`¿Eliminar la línea de "${entry.client}" (${formatNumber(entry.amount)} - ${entry.type})?`, (ok) => {
-        if (!ok) return;
-        historyData.splice(currentEditIndex, 1);
-        saveHistory();
-        updateUI();
-        closeEditModal();
-      });
-    });
-
-    // ============================
-    // Inicialización
-    // ============================
-    loadHistory();
-    updateUI();
-
-    // ============================
-    // Formulario: clear buttons, envío y reset total
-    // ============================
-    function toggleClearBtn(inputEl, btnEl) {
-      btnEl.style.display = inputEl.value ? 'inline-flex' : 'none';
-    }
-
-    const clientInput = $('#clientName');
-    const amountInput = $('#amount');
-    const clearClientBtn = $('#clearClient');
-    const clearAmountBtn = $('#clearAmount');
-
-    clientInput.addEventListener('input', () => toggleClearBtn(clientInput, clearClientBtn));
-    amountInput.addEventListener('input', () => toggleClearBtn(amountInput, clearAmountBtn));
-
-    clearClientBtn.addEventListener('click', () => { clientInput.value = ''; toggleClearBtn(clientInput, clearClientBtn); clientInput.focus(); });
-    clearAmountBtn.addEventListener('click', () => { amountInput.value = ''; toggleClearBtn(amountInput, clearAmountBtn); amountInput.focus(); });
-
-    // Mostrar/ocultar X inicial
-    toggleClearBtn(clientInput, clearClientBtn);
-    toggleClearBtn(amountInput, clearAmountBtn);
-
-    $('#paymentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-
-      const client = clientInput.value.trim();
-      const amount = parseAmount(amountInput.value);
-      const type = ($('input[name="paymentType"]:checked') || {}).value;
-
-      if (!client || isNaN(amount) || !type) {
-        customAlert('Por favor, ingresa datos válidos (cliente, importe y forma de pago).', () => {});
-        return;
-      }
-
-      historyData.push({ id: Date.now(), client, amount, type });
-      saveHistory();
-      updateUI();
-
-      // RESET TOTAL: cliente, importe y forma de pago
-      this.reset();
-      // re-ocultar las X tras reset
-      toggleClearBtn(clientInput, clearClientBtn);
-      toggleClearBtn(amountInput, clearAmountBtn);
-      // opcional: enfocamos al cliente para velocidad
-      clientInput.focus();
-    });
-
-    // Borrar historial con confirmación
-    $('#clearHistory').addEventListener('click', function() {
-      customConfirm('¿Estás seguro de borrar TODO el historial?', (ok) => {
-        if (!ok) return;
-        historyData = [];
-        saveHistory();
-        updateUI();
-      });
-    });
-
-    // ============================
-    // Descargar / Compartir Excel
-    // ============================
-    $('#downloadExcel').addEventListener('click', async function() {
-      const reportDate = $('#reportDate').value.trim();
-      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(reportDate)) {
-        customAlert('Por favor, ingresa la fecha en formato DD/MM/AAAA antes de descargar.', () => {});
-        return;
-      }
-
-      const efectivoEntries = historyData.filter(e => e.type === 'Efectivo');
-      const tarjetaEntries  = historyData.filter(e => e.type === 'Tarjeta');
-      const totalEfectivo = efectivoEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const totalTarjeta  = tarjetaEntries.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-      const totalGeneral  = totalEfectivo + totalTarjeta;
-
-      const ws_data = [];
-      ws_data.push(['Liquidación diaria']);
-      ws_data.push(['Fecha: ' + reportDate]);
-      ws_data.push([]);
-      ws_data.push(['Efectivo', '', '', 'Tarjeta', '']);
-      ws_data.push(['Cliente', 'Importe', '', 'Cliente', 'Importe']);
-
-      const maxRows = Math.max(efectivoEntries.length, tarjetaEntries.length);
-      for (let i = 0; i < maxRows; i++) {
-        const row = [];
-        if (i < efectivoEntries.length) {
-          row.push(efectivoEntries[i].client);
-          row.push(Number(efectivoEntries[i].amount));
-        } else { row.push(''); row.push(''); }
-        row.push('');
-        if (i < tarjetaEntries.length) {
-          row.push(tarjetaEntries[i].client);
-          row.push(Number(tarjetaEntries[i].amount));
-        } else { row.push(''); row.push(''); }
-        ws_data.push(row);
-      }
-      ws_data.push([]);
-      ws_data.push(['Total Efectivo', Number(totalEfectivo), '', 'Total Tarjeta', Number(totalTarjeta)]);
-      ws_data.push(['Total General', Number(totalGeneral), '', '', '']);
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(ws_data);
-      ws['!cols'] = [
-        { wch: 25 }, { wch: 15 }, { wch: 3 }, { wch: 25 }, { wch: 15 }
-      ];
-      ws['!merges'] = [
-        { s: { r:0, c:0 }, e: { r:0, c:4 } },
-        { s: { r:1, c:0 }, e: { r:1, c:4 } },
-        { s: { r:3, c:0 }, e: { r:3, c:1 } },
-        { s: { r:3, c:3 }, e: { r:3, c:4 } }
-      ];
-      XLSX.utils.book_append_sheet(wb, ws, 'Historial');
-
-      const safeDate = reportDate.replace(/\//g, '-');
-      const array = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([array], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const fileName = 'liquidacion_' + safeDate + '.xlsx';
-
-      // 1) Intento compartir con archivo (si el navegador lo soporta)
-      try {
-        const file = new File([blob], fileName, { type: blob.type });
-        if (isShareSupported(file)) {
-          await navigator.share({ files: [file], title: 'Liquidación diaria', text: fileName });
-          return; // compartido, salimos
-        }
-      } catch (e) {
-        // Si el usuario cancela compartir, seguimos al plan B (descarga)
-      }
-
-      // 2) Fallback: descarga directa
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
-    });
-
-    // ============================
-    // Dropdowns
-    // ============================
-    function renderDropdown(list, container) {
-      clearNode(container);
-      if (list.length === 0) {
-        const em = document.createElement('em');
-        em.textContent = 'Sin registros.';
-        container.appendChild(em);
-      } else {
-        const ul = document.createElement('ul');
-        ul.style.listStyle = 'none';
-        ul.style.margin = '0';
-        ul.style.padding = '0';
-        list.forEach(item => {
-          const li = document.createElement('li');
-          li.textContent = `${item.client} — ${formatNumber(item.amount)}`;
-          ul.appendChild(li);
-        });
-        container.appendChild(ul);
-      }
-    }
-    function toggleDropdownEfectivo() {
-      const dropdown = $('#dropdownEfectivo');
-      const other = $('#dropdownTarjeta');
-      if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        const efectivoEntries = historyData.filter(e => e.type === 'Efectivo');
-        renderDropdown(efectivoEntries, dropdown);
-        dropdown.style.display = 'block';
-        other.style.display = 'none';
-      } else { dropdown.style.display = 'none'; }
-    }
-    function toggleDropdownTarjeta() {
-      const dropdown = $('#dropdownTarjeta');
-      const other = $('#dropdownEfectivo');
-      if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-        const tarjetaEntries = historyData.filter(e => e.type === 'Tarjeta');
-        renderDropdown(tarjetaEntries, dropdown);
-        dropdown.style.display = 'block';
-        other.style.display = 'none';
-      } else { dropdown.style.display = 'none'; }
-    }
-    $('#totalEfectivo').addEventListener('click', toggleDropdownEfectivo);
-    $('#totalTarjeta').addEventListener('click', toggleDropdownTarjeta);
-  </script>
+loadHistory();updateUI();
+</script>
 </body>
 </html>
