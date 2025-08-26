@@ -21,18 +21,22 @@
       --blue: #008CBA;
     }
     * { box-sizing: border-box; }
+
+    /* Evitar rebotes/jumps al llegar al fondo o al tope */
     html, body {
       height: 100%;
-      overscroll-behavior-y: contain; /* reduce “rebote” en móviles */
-      scroll-behavior: auto;
-    }
-    body {
-      font-family: Arial, sans-serif;
+      margin: 0;
+      overscroll-behavior-y: none; /* clave para cortar el “rebote” */
       background: var(--coffee);
       color: var(--text);
-      margin: 0;
+      -webkit-overflow-scrolling: touch; /* scroll fluido en iOS */
+    }
+
+    body {
+      font-family: Arial, sans-serif;
       padding: 20px;
     }
+
     header {
       text-align: center;
       padding: 20px;
@@ -41,10 +45,12 @@
       border-radius: 8px;
       margin-bottom: 16px;
     }
+
     .container {
       max-width: 900px;
       margin: 0 auto;
     }
+
     .date-input {
       margin-bottom: 20px;
       display: flex;
@@ -88,11 +94,13 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 0;          /* sin recuadro punteado */
-      border: none;        /* eliminado */
-      border-radius: 0;    /* limpio */
+      padding: 0;       /* sin recuadro */
+      border: none;     /* quitado */
+      border-radius: 0; /* limpio */
     }
     .payment-method label { cursor: pointer; }
+
+    /* Botón Agregar */
     form button[type="submit"] {
       background-color: var(--blue);
       color: var(--white);
@@ -114,13 +122,13 @@
     th, td { padding: 10px; text-align: center; }
     th.acciones { width: 140px; }
 
-    /* Botón Editar dentro de la tabla: igual que Agregar */
+    /* Botón Editar igual que Agregar */
     .editBtn {
       border: 1px solid var(--white);
       background-color: var(--blue);
       color: var(--white);
       border-radius: 5px;
-      padding: 10px; /* misma medida visual */
+      padding: 10px;
       cursor: pointer;
     }
 
@@ -169,6 +177,7 @@
       height: 100%;
       overflow: auto;
       background-color: rgba(0,0,0,0.5);
+      overscroll-behavior-y: none; /* también dentro del modal */
     }
     .modal-content {
       background-color: var(--white);
@@ -204,7 +213,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
     }
-    /* Botones del modal con texto negro y fondo blanco para visibilidad */
+    /* Botones del modal con texto negro para máxima visibilidad */
     .modal-buttons button {
       padding: 10px;
       cursor: pointer;
@@ -214,7 +223,6 @@
       background: #fff;
       color: #000; /* texto negro */
     }
-    /* Bordes diferenciados por “tipo”, pero manteniendo fondo blanco */
     .danger     { border-color: #d9534f; }
     .primary    { border-color: #007bff; }
     .secondary  { border-color: #6c757d; }
@@ -241,7 +249,6 @@
     <div class="date-input">
       <label for="reportDate">Fecha (DD/MM/AAAA):</label>
       <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric">
-      <!-- (Descripción eliminada a petición) -->
     </div>
 
     <!-- Formulario -->
@@ -396,14 +403,12 @@
     }
 
     // ============================
-    // UI (conservando scroll para evitar “rebote”)
+    // UI
     // ============================
     function clearNode(node) { while (node.firstChild) node.removeChild(node.firstChild); }
     function makeCell(text) { const td = document.createElement('td'); td.textContent = text; return td; }
 
     function updateUI() {
-      const prevY = window.scrollY; // guardamos posición de scroll
-
       const tbody = $('#historyTable tbody');
       clearNode(tbody);
 
@@ -442,9 +447,6 @@
           openEditModal(currentEditIndex);
         });
       });
-
-      // restauramos scroll para evitar “saltos” visibles
-      window.scrollTo({ top: prevY });
     }
 
     // ============================
@@ -554,7 +556,7 @@
       saveDraftDate();
     });
 
-    // Envío
+    // Envío (sin limpiar el formulario automáticamente)
     $('#paymentForm').addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -570,7 +572,6 @@
       history.push({ id: Date.now(), client, amount, type });
       saveHistory();
       updateUI();
-      // No reseteamos el formulario (no borrar nada automáticamente)
     });
 
     // Borrar historial con confirmación
