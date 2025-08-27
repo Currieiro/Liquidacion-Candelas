@@ -11,96 +11,79 @@
   <meta name="apple-mobile-web-app-title" content="Liquidación diaria" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    :root {
-      --coffee: #6f4e37;
-      --orange: #FFA500;
-      --orange-dark: #f0a500;
-      --white: #fff;
-      --black: #000;
-      --blue: #008CBA;
-      --neg: #ff6b6b;
+    :root{
+      --coffee:#6f4e37; --orange:#FFA500; --orange-dark:#f0a500;
+      --white:#fff; --black:#000; --blue:#008CBA; --neg:#ff6b6b;
     }
-    * { box-sizing: border-box; }
-    html, body {
-      height: 100%; margin: 0;
-      background: var(--coffee); color: var(--white);
-      font-family: Arial, sans-serif;
-      overscroll-behavior: none;
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--coffee);color:var(--white);font-family:Arial,sans-serif;overscroll-behavior:none}
+    .page{min-height:100vh;padding:20px}
+    header{
+      padding:16px 20px;background:var(--orange);color:var(--white);
+      border-radius:8px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:12px
     }
-    .page { min-height: 100vh; padding: 20px; }
+    header img.logo{height:42px;width:auto;border-radius:4px;display:block}
+    header h1{margin:0;font-size:1.6em;line-height:1}
+    .container{max-width:900px;margin:0 auto}
 
-    header {
-      padding: 16px 20px;
-      background-color: var(--orange); color: var(--white);
-      border-radius: 8px; margin-bottom: 16px;
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      text-align: center;
-    }
-    header img.logo { height: 42px; width: auto; border-radius: 4px; display:block; }
-    header h1 { margin: 0; font-size: 1.6em; line-height: 1; }
-
-    .container { max-width: 900px; margin: 0 auto; }
-
-    .date-input { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    .date-input input {
-      padding: 10px; font-size: 1em;
-      border: 1px solid var(--white); border-radius: 5px;
-      background: transparent; color: var(--white); width: 180px;
+    .date-input{margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .date-input input{
+      padding:10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white);width:180px
     }
 
-    /* Campo con botón X */
-    .field { position: relative; flex: 1 1 200px; min-width: 160px; }
-    .field input {
-      width: 100%; padding: 10px 36px 10px 10px; font-size: 1em;
-      border: 1px solid var(--white); border-radius: 5px;
-      background: transparent; color: var(--white);
+    /* Campos con botones en el borde */
+    .field{position:relative;flex:1 1 200px;min-width:160px}
+    .field input{
+      width:100%;padding:10px 72px 10px 10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white)
     }
-    .clear-btn {
-      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-      height: 24px; width: 24px; border: 1px solid var(--white);
-      color: var(--white); background: transparent; border-radius: 50%;
-      cursor: pointer; font-size: 16px; display: none;
-      align-items: center; justify-content: center;
+    .field .clear-btn,.field .sign-btn{
+      position:absolute;top:50%;transform:translateY(-50%);height:24px;min-width:24px;border:1px solid var(--white);
+      color:var(--white);background:transparent;border-radius:50%;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;padding:0
+    }
+    .field .sign-btn{right:40px;display:inline-flex} /* el ± siempre visible */
+    .field .clear-btn{right:8px}
+
+    /* Línea: Efectivo · Tarjeta · Agregar */
+    .action-row{
+      display:flex;align-items:center;gap:10px;margin:10px 0 20px 0;flex-wrap:wrap
+    }
+    .segmented{
+      display:flex;gap:8px;align-items:center;flex-wrap:wrap
+    }
+    .segmented input{display:none}
+    .segmented label{
+      padding:8px 12px;border:1px solid var(--white);border-radius:999px;color:var(--white);cursor:pointer;user-select:none
+    }
+    .segmented input:checked + label{background:var(--blue);border-color:var(--white);color:var(--white)}
+    .btn-add{
+      margin-left:auto;padding:10px 14px;border:1px solid var(--white);border-radius:5px;background:var(--blue);color:var(--white);cursor:pointer
     }
 
-    form { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
-    form button {
-      padding: 10px; font-size: 1em; border: 1px solid var(--white);
-      border-radius: 5px; background: transparent; color: var(--white);
-    }
-    .payment-method { display: flex; align-items: center; gap: 12px; }
-    form button[type="submit"] { background-color: var(--blue); }
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;background:#00000022;border-radius:8px;overflow:hidden}
+    table,th,td{border:1px solid var(--white)}
+    th,td{padding:10px;text-align:center}
+    .editBtn{border:1px solid var(--white);background:var(--blue);color:var(--white);border-radius:5px;padding:10px;cursor:pointer}
+    .neg{color:var(--neg);font-weight:600}
 
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #00000022; border-radius: 8px; overflow: hidden; }
-    table, th, td { border: 1px solid var(--white); }
-    th, td { padding: 10px; text-align: center; }
-    .editBtn { border: 1px solid var(--white); background-color: var(--blue); color: var(--white); border-radius: 5px; padding: 10px; cursor: pointer; }
-    .neg { color: var(--neg); font-weight: 600; }
+    .summary{display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;padding:10px;background:var(--orange-dark);border:1px solid var(--white);border-radius:5px}
+    #totalEfectivo,#totalTarjeta{cursor:pointer;text-decoration:underline}
+    .totalValue.neg{color:var(--neg)}
 
-    .summary { display: flex; justify-content: space-around; gap: 10px; flex-wrap: wrap; padding: 10px; background: var(--orange-dark); border: 1px solid var(--white); border-radius: 5px; }
-    #totalEfectivo, #totalTarjeta { cursor: pointer; text-decoration: underline; }
-    .totalValue.neg { color: var(--neg); }
-
-    .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
-    .buttons button { flex: 1; min-width: 180px; padding: 10px; background: var(--orange); border: none; color: var(--white); border-radius: 5px; cursor: pointer; }
+    .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+    .buttons button{flex:1;min-width:180px;padding:10px;background:var(--orange);border:none;color:var(--white);border-radius:5px;cursor:pointer}
 
     /* Modales */
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
-    .modal-content {
-      background: var(--white); color: var(--black); margin: 8% auto;
-      padding: 20px; border-radius: 12px; width: 360px; max-width: calc(100% - 24px);
-    }
-    .modal-content h2 { margin: 0 0 12px 0; text-align: center; }
-    .modal-form { display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px 12px; align-items: center; }
-    .modal-form input, .modal-form select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
-    @media(max-width:420px){ .modal-form{grid-template-columns:1fr;} }
-    .modal-buttons { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .modal-buttons button { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #000; }
-    .danger { border-color: #d9534f; }
-    .primary { border-color: #007bff; }
-    .secondary { border-color: #6c757d; }
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
+    .modal-content{background:var(--white);color:var(--black);margin:8% auto;padding:20px;border-radius:12px;width:360px;max-width:calc(100% - 24px)}
+    .modal-content h2{margin:0 0 12px 0;text-align:center}
+    .modal-form{display:grid;grid-template-columns:1fr 1.5fr;gap:10px 12px;align-items:center}
+    .modal-form input,.modal-form select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
+    @media(max-width:420px){.modal-form{grid-template-columns:1fr}}
+    .modal-buttons{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+    .modal-buttons button{flex:1;padding:10px;border-radius:8px;border:1px solid #ddd;background:#fff;color:#000}
+    .danger{border-color:#d9534f}.primary{border-color:#007bff}.secondary{border-color:#6c757d}
 
-    .dropdown { display:none; margin-top: 10px; border: 1px solid var(--white); border-radius: 5px; padding: 10px; background: var(--orange-dark); }
+    .dropdown{display:none;margin-top:10px;border:1px solid var(--white);border-radius:5px;padding:10px;background:var(--orange-dark)}
   </style>
 </head>
 <body>
@@ -117,36 +100,39 @@
         <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off">
       </div>
 
-      <!-- Formulario -->
-      <form id="paymentForm" autocomplete="off">
+      <!-- Campos principales -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0;">
         <div class="field">
-          <input type="text" id="clientName" placeholder="Nombre del cliente" required>
+          <input type="text" id="clientName" placeholder="Nombre del cliente" autocomplete="off" required>
           <button class="clear-btn" id="clearClient" type="button" aria-label="Limpiar cliente">×</button>
         </div>
 
         <div class="field">
-          <!-- IMPORTANTE: text + inputmode=decimal para que salga el “–” en móvil -->
-          <input type="text" id="amount" placeholder="Importe cobrado" required
-                 inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" autocomplete="off">
+          <!-- text + decimal: mejor teclado; ± para forzar signo -->
+          <input type="text" id="amount" placeholder="Importe cobrado" autocomplete="off"
+                 inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" required>
+          <button class="sign-btn" id="toggleSign" type="button" aria-label="Cambiar signo">±</button>
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
+      </div>
 
-        <div class="payment-method">
-          <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
-          <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+      <!-- Efectivo · Tarjeta · Agregar (misma línea) -->
+      <form id="paymentForm" class="action-row" autocomplete="off">
+        <div class="segmented" role="group" aria-label="Forma de pago">
+          <input type="radio" id="payCash" name="paymentType" value="Efectivo">
+          <label for="payCash">Efectivo</label>
+
+          <input type="radio" id="payCard" name="paymentType" value="Tarjeta">
+          <label for="payCard">Tarjeta</label>
         </div>
-        <button type="submit">Agregar</button>
+
+        <button class="btn-add" type="submit">Agregar</button>
       </form>
 
       <!-- Tabla -->
       <table id="historyTable">
         <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Importe</th>
-            <th>Forma de pago</th>
-            <th>Acciones</th>
-          </tr>
+          <tr><th>Cliente</th><th>Importe</th><th>Forma de pago</th><th>Acciones</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -162,7 +148,7 @@
       <div id="dropdownEfectivo" class="dropdown"></div>
       <div id="dropdownTarjeta" class="dropdown"></div>
 
-      <!-- Botones -->
+      <!-- Botones inferiores -->
       <div class="buttons">
         <button id="downloadExcel">Descargar / Compartir Excel</button>
         <button id="clearHistory">Borrar Historial</button>
@@ -180,7 +166,6 @@
 
         <label for="editAmount">Importe</label>
         <input type="text" id="editAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
-
         <label for="editPayment">Forma de pago</label>
         <select id="editPayment">
           <option value="Efectivo">Efectivo</option>
@@ -196,7 +181,7 @@
     </div>
   </div>
 
-  <!-- Modal confirmación -->
+  <!-- Modales de confirmación/alerta -->
   <div id="confirmModal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <p id="confirmMessage">¿Seguro?</p>
@@ -207,7 +192,6 @@
     </div>
   </div>
 
-  <!-- Modal alerta -->
   <div id="alertModal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <p id="alertMessage">Mensaje</p>
@@ -218,19 +202,17 @@
   </div>
 
 <script>
-/* ===== Utilidades ===== */
+/* ===== Helpers ===== */
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
 function formatNumber(n){
   const num = Number(n||0);
-  const txt = num.toFixed(2).replace('.', ','); // mantiene el signo
-  return txt;
+  return num.toFixed(2).replace('.', ','); // mantiene signo
 }
 function parseAmount(v){
   if (v == null) return NaN;
-  const cleaned = String(v).trim().replace(',', '.'); // coma -> punto
-  // admite "-", dígitos y punto
+  const cleaned = String(v).trim().replace(',', '.');
   if (!/^[-+]?\d*\.?\d*$/.test(cleaned)) return NaN;
   return parseFloat(cleaned);
 }
@@ -240,7 +222,7 @@ function setNegColor(el, value){
 
 /* ===== Estado ===== */
 let historyData=[]; let currentEditIndex=null;
-function loadHistory(){ try{ historyData=JSON.parse(localStorage.getItem('history')||'[]'); if(!Array.isArray(historyData)) historyData=[]; }catch{ historyData=[]; } }
+function loadHistory(){ try{ historyData = JSON.parse(localStorage.getItem('history')||'[]'); if(!Array.isArray(historyData)) historyData=[]; }catch{ historyData=[]; } }
 function saveHistory(){ localStorage.setItem('history', JSON.stringify(historyData)); }
 function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild); }
 
@@ -323,12 +305,22 @@ const clientInput = $('#clientName');
 const amountInput = $('#amount');
 const clearClientBtn = $('#clearClient');
 const clearAmountBtn = $('#clearAmount');
+const toggleSignBtn  = $('#toggleSign');
 
 function toggleClearBtn(inputEl, btnEl){ btnEl.style.display = inputEl.value ? 'inline-flex' : 'none'; }
 clientInput.oninput = ()=> toggleClearBtn(clientInput, clearClientBtn);
 amountInput.oninput = ()=> toggleClearBtn(amountInput, clearAmountBtn);
+
 clearClientBtn.onclick = ()=>{ clientInput.value=''; toggleClearBtn(clientInput, clearClientBtn); clientInput.focus(); };
 clearAmountBtn.onclick = ()=>{ amountInput.value=''; toggleClearBtn(amountInput, clearAmountBtn); amountInput.focus(); };
+toggleSignBtn.onclick  = ()=>{
+  let v = amountInput.value.trim();
+  if (!v) { amountInput.value = '-'; amountInput.focus(); return; }
+  if (v.startsWith('-')) v = v.slice(1); else v = '-' + v;
+  amountInput.value = v;
+  amountInput.focus();
+  toggleClearBtn(amountInput, clearAmountBtn);
+};
 
 $('#paymentForm').onsubmit = e=>{
   e.preventDefault();
@@ -338,8 +330,9 @@ $('#paymentForm').onsubmit = e=>{
   if (!c || isNaN(a) || !t) { customAlert('Por favor, ingresa cliente, importe y forma de pago.'); return; }
   historyData.push({ client: c, amount: a, type: t });
   saveHistory(); updateUI();
-  // reset total (incluye desmarcar forma de pago)
+  // reset total
   e.target.reset();
+  clientInput.value=''; amountInput.value='';
   toggleClearBtn(clientInput, clearClientBtn);
   toggleClearBtn(amountInput, clearAmountBtn);
   clientInput.focus();
@@ -348,7 +341,7 @@ $('#paymentForm').onsubmit = e=>{
 /* ===== Borrar historial ===== */
 $('#clearHistory').onclick = ()=> customConfirm('¿Borrar TODO el historial?', ok=>{ if(!ok) return; historyData = []; saveHistory(); updateUI(); });
 
-/* ===== Máscara de fecha: 22032025 -> 22/03/2025 ===== */
+/* ===== Máscara de fecha ===== */
 $('#reportDate').addEventListener('input', function(){
   let v = this.value.replace(/\D/g,'');
   if (v.length > 2 && v.length <= 4) v = v.slice(0,2) + '/' + v.slice(2);
@@ -358,7 +351,6 @@ $('#reportDate').addEventListener('input', function(){
 
 /* ===== Descargar / Compartir Excel ===== */
 function isShareSupported(file){ return navigator.share && navigator.canShare && navigator.canShare({files:[file]}); }
-
 $('#downloadExcel').onclick = async ()=>{
   const d = $('#reportDate').value.trim();
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(d)) { customAlert('Fecha inválida. Formato: DD/MM/AAAA.'); return; }
@@ -403,9 +395,8 @@ $('#downloadExcel').onclick = async ()=>{
   const fileName = 'liquidacion_' + d.replace(/\//g,'-') + '.xlsx';
   const file = new File([blob], fileName, { type: blob.type });
 
-  try {
-    if (isShareSupported(file)) { await navigator.share({ files:[file], title:'Liquidación diaria', text:fileName }); return; }
-  } catch(_) { /* si cancela, seguimos con descarga */ }
+  try { if (isShareSupported(file)) { await navigator.share({ files:[file], title:'Liquidación diaria', text:fileName }); return; } }
+  catch(_){}
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
