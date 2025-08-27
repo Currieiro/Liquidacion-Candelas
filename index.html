@@ -31,7 +31,7 @@
       padding:10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white);width:180px
     }
 
-    /* Campos con botones en el borde */
+    /* Campos con botones */
     .field{position:relative;flex:1 1 200px;min-width:160px}
     .field input{
       width:100%;padding:10px 72px 10px 10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white)
@@ -40,23 +40,13 @@
       position:absolute;top:50%;transform:translateY(-50%);height:24px;min-width:24px;border:1px solid var(--white);
       color:var(--white);background:transparent;border-radius:50%;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;padding:0
     }
-    .field .sign-btn{right:40px;display:inline-flex} /* el ± siempre visible */
+    .field .sign-btn{right:40px;display:inline-flex} /* ± siempre visible */
     .field .clear-btn{right:8px}
 
-    /* Línea: Efectivo · Tarjeta · Agregar */
-    .action-row{
-      display:flex;align-items:center;gap:10px;margin:10px 0 20px 0;flex-wrap:wrap
-    }
-    .segmented{
-      display:flex;gap:8px;align-items:center;flex-wrap:wrap
-    }
-    .segmented input{display:none}
-    .segmented label{
-      padding:8px 12px;border:1px solid var(--white);border-radius:999px;color:var(--white);cursor:pointer;user-select:none
-    }
-    .segmented input:checked + label{background:var(--blue);border-color:var(--white);color:var(--white)}
-    .btn-add{
-      margin-left:auto;padding:10px 14px;border:1px solid var(--white);border-radius:5px;background:var(--blue);color:var(--white);cursor:pointer
+    form{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
+    .payment-method{display:flex;align-items:center;gap:12px}
+    form button[type="submit"]{
+      padding:10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:var(--blue);color:var(--white);cursor:pointer
     }
 
     table{width:100%;border-collapse:collapse;margin-bottom:20px;background:#00000022;border-radius:8px;overflow:hidden}
@@ -100,33 +90,26 @@
         <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off">
       </div>
 
-      <!-- Campos principales -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0;">
+      <!-- Formulario -->
+      <form id="paymentForm" autocomplete="off">
         <div class="field">
           <input type="text" id="clientName" placeholder="Nombre del cliente" autocomplete="off" required>
           <button class="clear-btn" id="clearClient" type="button" aria-label="Limpiar cliente">×</button>
         </div>
 
         <div class="field">
-          <!-- text + decimal: mejor teclado; ± para forzar signo -->
           <input type="text" id="amount" placeholder="Importe cobrado" autocomplete="off"
                  inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" required>
           <button class="sign-btn" id="toggleSign" type="button" aria-label="Cambiar signo">±</button>
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
-      </div>
 
-      <!-- Efectivo · Tarjeta · Agregar (misma línea) -->
-      <form id="paymentForm" class="action-row" autocomplete="off">
-        <div class="segmented" role="group" aria-label="Forma de pago">
-          <input type="radio" id="payCash" name="paymentType" value="Efectivo">
-          <label for="payCash">Efectivo</label>
-
-          <input type="radio" id="payCard" name="paymentType" value="Tarjeta">
-          <label for="payCard">Tarjeta</label>
+        <div class="payment-method">
+          <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
+          <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
         </div>
 
-        <button class="btn-add" type="submit">Agregar</button>
+        <button type="submit">Agregar</button>
       </form>
 
       <!-- Tabla -->
@@ -148,7 +131,7 @@
       <div id="dropdownEfectivo" class="dropdown"></div>
       <div id="dropdownTarjeta" class="dropdown"></div>
 
-      <!-- Botones inferiores -->
+      <!-- Botones -->
       <div class="buttons">
         <button id="downloadExcel">Descargar / Compartir Excel</button>
         <button id="clearHistory">Borrar Historial</button>
@@ -157,13 +140,12 @@
   </div>
 
   <!-- Modal edición -->
-  <div id="editModal" class="modal" aria-hidden="true">
+  <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Editar entrada</h2>
       <div class="modal-form">
         <label for="editClient">Cliente</label>
         <input type="text" id="editClient" />
-
         <label for="editAmount">Importe</label>
         <input type="text" id="editAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
         <label for="editPayment">Forma de pago</label>
@@ -172,215 +154,170 @@
           <option value="Tarjeta">Tarjeta</option>
         </select>
       </div>
-
       <div class="modal-buttons">
-        <button id="deleteLine" class="danger" type="button">Eliminar línea</button>
-        <button id="saveEdit" class="primary" type="button">Guardar</button>
-        <button id="cancelEdit" class="secondary" type="button">Cancelar</button>
+        <button id="deleteLine" class="danger">Eliminar línea</button>
+        <button id="saveEdit" class="primary">Guardar</button>
+        <button id="cancelEdit" class="secondary">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <!-- Modales de confirmación/alerta -->
-  <div id="confirmModal" class="modal" aria-hidden="true">
+  <!-- Confirmación -->
+  <div id="confirmModal" class="modal">
     <div class="modal-content">
       <p id="confirmMessage">¿Seguro?</p>
       <div class="modal-buttons">
-        <button id="confirmAccept" class="primary" type="button">Aceptar</button>
-        <button id="confirmCancel" class="secondary" type="button">Cancelar</button>
+        <button id="confirmAccept" class="primary">Aceptar</button>
+        <button id="confirmCancel" class="secondary">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <div id="alertModal" class="modal" aria-hidden="true">
+  <!-- Alerta -->
+  <div id="alertModal" class="modal">
     <div class="modal-content">
       <p id="alertMessage">Mensaje</p>
       <div class="modal-buttons">
-        <button id="alertAccept" class="primary" type="button">Aceptar</button>
+        <button id="alertAccept" class="primary">Aceptar</button>
       </div>
     </div>
   </div>
 
 <script>
-/* ===== Helpers ===== */
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-
-function formatNumber(n){
-  const num = Number(n||0);
-  return num.toFixed(2).replace('.', ','); // mantiene signo
-}
+/* === Helpers === */
+const $=s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
+function formatNumber(n){return Number(n||0).toFixed(2).replace('.',',');}
 function parseAmount(v){
-  if (v == null) return NaN;
-  const cleaned = String(v).trim().replace(',', '.');
-  if (!/^[-+]?\d*\.?\d*$/.test(cleaned)) return NaN;
-  return parseFloat(cleaned);
+  if(v==null)return NaN;
+  const c=String(v).trim().replace(',', '.');
+  if(!/^[-+]?\d*\.?\d*$/.test(c)) return NaN;
+  return parseFloat(c);
 }
-function setNegColor(el, value){
-  if (Number(value) < 0) el.classList.add('neg'); else el.classList.remove('neg');
-}
+function setNegColor(el,v){Number(v)<0?el.classList.add('neg'):el.classList.remove('neg');}
 
-/* ===== Estado ===== */
-let historyData=[]; let currentEditIndex=null;
-function loadHistory(){ try{ historyData = JSON.parse(localStorage.getItem('history')||'[]'); if(!Array.isArray(historyData)) historyData=[]; }catch{ historyData=[]; } }
-function saveHistory(){ localStorage.setItem('history', JSON.stringify(historyData)); }
-function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild); }
+/* === Estado === */
+let historyData=[];let currentEditIndex=null;
+function loadHistory(){try{historyData=JSON.parse(localStorage.getItem('history')||'[]');if(!Array.isArray(historyData))historyData=[]}catch{historyData=[]}}
+function saveHistory(){localStorage.setItem('history',JSON.stringify(historyData));}
+function clearNode(n){while(n.firstChild)n.removeChild(n.firstChild);}
 
-/* ===== UI ===== */
+/* === UI === */
 function updateUI(){
-  const tb = $('#historyTable tbody'); clearNode(tb);
-  let tE=0, tT=0;
-
+  const tb=$('#historyTable tbody');clearNode(tb);let tE=0,tT=0;
   historyData.forEach((e,i)=>{
-    const tr = document.createElement('tr');
-
-    const tdClient = document.createElement('td'); tdClient.textContent = e.client;
-    const tdAmount = document.createElement('td');  tdAmount.textContent = formatNumber(e.amount); setNegColor(tdAmount, e.amount);
-    const tdType   = document.createElement('td');  tdType.textContent   = e.type;
-    const tdAct    = document.createElement('td');
-    const btnEdit  = document.createElement('button');
-    btnEdit.type='button'; btnEdit.className='editBtn'; btnEdit.textContent='Editar'; btnEdit.dataset.i=String(i);
-    tdAct.appendChild(btnEdit);
-
-    tr.appendChild(tdClient); tr.appendChild(tdAmount); tr.appendChild(tdType); tr.appendChild(tdAct);
-    tb.appendChild(tr);
-
-    if (e.type === 'Efectivo') tE += +e.amount; else tT += +e.amount;
+    const tr=document.createElement('tr');
+    const tdC=document.createElement('td');tdC.textContent=e.client;
+    const tdA=document.createElement('td');tdA.textContent=formatNumber(e.amount);setNegColor(tdA,e.amount);
+    const tdT=document.createElement('td');tdT.textContent=e.type;
+    const tdAct=document.createElement('td');const btn=document.createElement('button');
+    btn.type='button';btn.className='editBtn';btn.textContent='Editar';btn.dataset.i=i;
+    tdAct.appendChild(btn);
+    tr.append(tdC,tdA,tdT,tdAct);tb.appendChild(tr);
+    if(e.type==='Efectivo')tE+=+e.amount;else tT+=+e.amount;
   });
-
-  const elTE = $('#totalEfectivo');
-  const elTT = $('#totalTarjeta');
-  const elTG = $('#totalGeneral');
-
-  elTE.textContent = formatNumber(tE); setNegColor(elTE, tE);
-  elTT.textContent = formatNumber(tT); setNegColor(elTT, tT);
-  elTG.textContent = formatNumber(tE + tT); setNegColor(elTG, tE + tT);
-
-  $$('.editBtn').forEach(b => b.onclick = () => { currentEditIndex = +b.dataset.i; openEditModal(currentEditIndex); });
+  const elTE=$('#totalEfectivo'), elTT=$('#totalTarjeta'), elTG=$('#totalGeneral');
+  elTE.textContent=formatNumber(tE);setNegColor(elTE,tE);
+  elTT.textContent=formatNumber(tT);setNegColor(elTT,tT);
+  elTG.textContent=formatNumber(tE+tT);setNegColor(elTG,tE+tT);
+  $$('.editBtn').forEach(b=>b.onclick=()=>{currentEditIndex=+b.dataset.i;openEditModal(currentEditIndex);});
 }
 
-/* ===== Modales ===== */
-function customConfirm(message, cb){
-  $('#confirmMessage').textContent = message;
-  const m = $('#confirmModal'); m.style.display = 'block';
-  const a = $('#confirmAccept'), c = $('#confirmCancel');
-  function clean(){ a.onclick=c.onclick=null; m.style.display='none'; }
-  a.onclick=()=>{ clean(); cb(true); }; c.onclick=()=>{ clean(); cb(false); };
-}
-function customAlert(message, cb){
-  $('#alertMessage').textContent = message;
-  const m = $('#alertModal'); m.style.display='block';
-  $('#alertAccept').onclick = ()=>{ m.style.display='none'; if(cb) cb(); };
-}
+/* === Modales === */
+function customConfirm(msg,cb){$('#confirmMessage').textContent=msg;const m=$('#confirmModal');m.style.display='block';const a=$('#confirmAccept'),c=$('#confirmCancel');function clean(){a.onclick=c.onclick=null;m.style.display='none'}a.onclick=()=>{clean();cb(true)};c.onclick=()=>{clean();cb(false)};}
+function customAlert(msg,cb){$('#alertMessage').textContent=msg;const m=$('#alertModal');m.style.display='block';$('#alertAccept').onclick=()=>{m.style.display='none';if(cb)cb();};}
 
 function openEditModal(i){
-  const e = historyData[i]; if(!e) return;
-  $('#editClient').value = e.client;
-  $('#editAmount').value = String(e.amount);
-  $('#editPayment').value = e.type;
-  $('#editModal').style.display = 'block';
+  const e=historyData[i]; if(!e) return;
+  $('#editClient').value=e.client; $('#editAmount').value=e.amount; $('#editPayment').value=e.type;
+  $('#editModal').style.display='block';
 }
-function closeEditModal(){ $('#editModal').style.display='none'; currentEditIndex=null; }
+function closeEditModal(){$('#editModal').style.display='none';currentEditIndex=null;}
 
-$('#saveEdit').onclick = ()=>{
-  const c = $('#editClient').value.trim();
-  const a = parseAmount($('#editAmount').value);
-  const t = $('#editPayment').value;
-  if (!c || isNaN(a)) { customAlert('Por favor, ingresa datos válidos.'); return; }
-  historyData[currentEditIndex] = { client: c, amount: a, type: t };
-  saveHistory(); updateUI(); closeEditModal();
+$('#saveEdit').onclick=()=>{
+  const c=$('#editClient').value.trim();
+  const a=parseAmount($('#editAmount').value);
+  const t=$('#editPayment').value;
+  if(!c||isNaN(a)){customAlert('Datos inválidos');return;}
+  historyData[currentEditIndex]={client:c,amount:a,type:t};
+  saveHistory();updateUI();closeEditModal();
 };
-$('#cancelEdit').onclick = closeEditModal;
-$('#deleteLine').onclick = ()=>{
-  const e = historyData[currentEditIndex]; if(!e) return;
-  customConfirm(`¿Eliminar la línea de "${e.client}" (${formatNumber(e.amount)} - ${e.type})?`, ok=>{
-    if (!ok) return;
-    historyData.splice(currentEditIndex, 1);
-    saveHistory(); updateUI(); closeEditModal();
+$('#cancelEdit').onclick=closeEditModal;
+$('#deleteLine').onclick=()=>{
+  const e=historyData[currentEditIndex]; if(!e) return;
+  customConfirm(`¿Eliminar "${e.client}" (${formatNumber(e.amount)} - ${e.type})?`, ok=>{
+    if(!ok) return;
+    historyData.splice(currentEditIndex,1); saveHistory(); updateUI(); closeEditModal();
   });
 };
 
-/* ===== Formulario principal ===== */
-const clientInput = $('#clientName');
-const amountInput = $('#amount');
-const clearClientBtn = $('#clearClient');
-const clearAmountBtn = $('#clearAmount');
-const toggleSignBtn  = $('#toggleSign');
+/* === Formulario === */
+const clientInput=$('#clientName'); const amountInput=$('#amount');
+const clearClientBtn=$('#clearClient'); const clearAmountBtn=$('#clearAmount'); const toggleSignBtn=$('#toggleSign');
 
-function toggleClearBtn(inputEl, btnEl){ btnEl.style.display = inputEl.value ? 'inline-flex' : 'none'; }
-clientInput.oninput = ()=> toggleClearBtn(clientInput, clearClientBtn);
-amountInput.oninput = ()=> toggleClearBtn(amountInput, clearAmountBtn);
-
-clearClientBtn.onclick = ()=>{ clientInput.value=''; toggleClearBtn(clientInput, clearClientBtn); clientInput.focus(); };
-clearAmountBtn.onclick = ()=>{ amountInput.value=''; toggleClearBtn(amountInput, clearAmountBtn); amountInput.focus(); };
-toggleSignBtn.onclick  = ()=>{
-  let v = amountInput.value.trim();
-  if (!v) { amountInput.value = '-'; amountInput.focus(); return; }
-  if (v.startsWith('-')) v = v.slice(1); else v = '-' + v;
-  amountInput.value = v;
-  amountInput.focus();
-  toggleClearBtn(amountInput, clearAmountBtn);
+function toggleClearBtn(i,b){b.style.display=i.value?'inline-flex':'none';}
+clientInput.oninput=()=>toggleClearBtn(clientInput,clearClientBtn);
+amountInput.oninput=()=>toggleClearBtn(amountInput,clearAmountBtn);
+clearClientBtn.onclick=()=>{clientInput.value='';toggleClearBtn(clientInput,clearClientBtn);clientInput.focus();}
+clearAmountBtn.onclick=()=>{amountInput.value='';toggleClearBtn(amountInput,clearAmountBtn);amountInput.focus();}
+toggleSignBtn.onclick=()=>{
+  let v=amountInput.value.trim();
+  if(!v){amountInput.value='-';amountInput.focus();return;}
+  amountInput.value=v.startsWith('-')?v.slice(1):'-'+v;
+  amountInput.focus(); toggleClearBtn(amountInput,clearAmountBtn);
 };
 
-$('#paymentForm').onsubmit = e=>{
+$('#paymentForm').onsubmit=e=>{
   e.preventDefault();
-  const c = clientInput.value.trim();
-  const a = parseAmount(amountInput.value);
-  const t = document.querySelector('input[name="paymentType"]:checked')?.value;
-  if (!c || isNaN(a) || !t) { customAlert('Por favor, ingresa cliente, importe y forma de pago.'); return; }
-  historyData.push({ client: c, amount: a, type: t });
+  const c=clientInput.value.trim();
+  const a=parseAmount(amountInput.value);
+  const t=document.querySelector('input[name="paymentType"]:checked')?.value;
+  if(!c||isNaN(a)||!t){customAlert('Faltan datos válidos');return;}
+  historyData.push({client:c,amount:a,type:t});
   saveHistory(); updateUI();
-  // reset total
-  e.target.reset();
-  clientInput.value=''; amountInput.value='';
-  toggleClearBtn(clientInput, clearClientBtn);
-  toggleClearBtn(amountInput, clearAmountBtn);
+  e.target.reset(); clientInput.value=''; amountInput.value='';
+  toggleClearBtn(clientInput,clearClientBtn); toggleClearBtn(amountInput,clearAmountBtn);
   clientInput.focus();
 };
 
-/* ===== Borrar historial ===== */
-$('#clearHistory').onclick = ()=> customConfirm('¿Borrar TODO el historial?', ok=>{ if(!ok) return; historyData = []; saveHistory(); updateUI(); });
-
-/* ===== Máscara de fecha ===== */
-$('#reportDate').addEventListener('input', function(){
-  let v = this.value.replace(/\D/g,'');
-  if (v.length > 2 && v.length <= 4) v = v.slice(0,2) + '/' + v.slice(2);
-  else if (v.length > 4) v = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4,8);
-  this.value = v;
+/* === Borrar historial === */
+$('#clearHistory').onclick=()=>customConfirm('¿Borrar historial?', ok=>{
+  if(ok){historyData=[];saveHistory();updateUI();}
 });
 
-/* ===== Descargar / Compartir Excel ===== */
-function isShareSupported(file){ return navigator.share && navigator.canShare && navigator.canShare({files:[file]}); }
-$('#downloadExcel').onclick = async ()=>{
-  const d = $('#reportDate').value.trim();
-  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(d)) { customAlert('Fecha inválida. Formato: DD/MM/AAAA.'); return; }
+/* === Máscara de fecha === */
+$('#reportDate').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>2&&v.length<=4) v=v.slice(0,2)+'/'+v.slice(2);
+  else if(v.length>4) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4,8);
+  this.value=v;
+});
 
-  const ef = historyData.filter(e=>e.type==='Efectivo');
-  const ta = historyData.filter(e=>e.type==='Tarjeta');
-  const totalEf = ef.reduce((s,e)=>s + (+e.amount||0), 0);
-  const totalTa = ta.reduce((s,e)=>s + (+e.amount||0), 0);
+/* === Descargar / Compartir Excel === */
+function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
+$('#downloadExcel').onclick=async()=>{
+  const d=$('#reportDate').value.trim();
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(d)){customAlert('Fecha inválida. Formato: DD/MM/AAAA.');return;}
 
-  const ws_data = [
-    ['Liquidación diaria'],
-    ['Fecha: ' + d],
-    [],
-    ['Efectivo','','','Tarjeta',''],
-    ['Cliente','Importe','','Cliente','Importe']
-  ];
-  const max = Math.max(ef.length, ta.length);
-  for (let i=0;i<max;i++){
+  const ef=historyData.filter(e=>e.type==='Efectivo');
+  const ta=historyData.filter(e=>e.type==='Tarjeta');
+  const te=ef.reduce((s,e)=>s+(+e.amount||0),0);
+  const tt=ta.reduce((s,e)=>s+(+e.amount||0),0);
+
+  const ws_data=[['Liquidación diaria'],['Fecha: '+d],[],['Efectivo','','','Tarjeta',''],['Cliente','Importe','','Cliente','Importe']];
+  const max=Math.max(ef.length,ta.length);
+  for(let i=0;i<max;i++){
     ws_data.push([
-      ef[i]?.client || '', Number(ef[i]?.amount ?? ''),
-      '',
-      ta[i]?.client || '', Number(ta[i]?.amount ?? '')
+      ef[i]?.client||'', Number(ef[i]?.amount??''),
+      '', 
+      ta[i]?.client||'', Number(ta[i]?.amount??'')
     ]);
   }
   ws_data.push([]);
-  ws_data.push(['Total Efectivo', Number(totalEf), '', 'Total Tarjeta', Number(totalTa)]);
-  ws_data.push(['Total General', Number(totalEf + totalTa), '', '', '']);
+  ws_data.push(['Total Efectivo', Number(te), '', 'Total Tarjeta', Number(tt)]);
+  ws_data.push(['Total General', Number(te+tt), '', '', '']);
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(ws_data);
   ws['!cols']=[{wch:25},{wch:15},{wch:3},{wch:25},{wch:15}];
   ws['!merges']=[
     {s:{r:0,c:0},e:{r:0,c:4}},
@@ -388,50 +325,48 @@ $('#downloadExcel').onclick = async ()=>{
     {s:{r:3,c:0},e:{r:3,c:1}},
     {s:{r:3,c:3},e:{r:3,c:4}}
   ];
-  XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+  XLSX.utils.book_append_sheet(wb,ws,'Historial');
 
-  const blob = new Blob([XLSX.write(wb, {bookType:'xlsx', type:'array'})],
-                        {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const fileName = 'liquidacion_' + d.replace(/\//g,'-') + '.xlsx';
-  const file = new File([blob], fileName, { type: blob.type });
+  const blob=new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const fileName='liquidacion_'+d.replace(/\//g,'-')+'.xlsx';
+  const file=new File([blob],fileName,{type:blob.type});
 
-  try { if (isShareSupported(file)) { await navigator.share({ files:[file], title:'Liquidación diaria', text:fileName }); return; } }
-  catch(_){}
+  try{ if(isShareSupported(file)){ await navigator.share({files:[file],title:'Liquidación diaria',text:fileName}); return; } }
+  catch(_){ /* si cancela el share, seguimos a descarga */ }
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = fileName; a.click();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 };
 
-/* ===== Dropdowns ===== */
-function fillDropdown(list, node){
+/* === Dropdowns === */
+function fillDropdown(list,node){
   clearNode(node);
-  if (!list.length) { const em=document.createElement('em'); em.textContent='Sin registros.'; node.appendChild(em); return; }
+  if(!list.length){const em=document.createElement('em');em.textContent='Sin registros.';node.appendChild(em);return;}
   const ul=document.createElement('ul'); ul.style.listStyle='none'; ul.style.margin='0'; ul.style.padding='0';
   list.forEach(it=>{
-    const li=document.createElement('li');
-    const span=document.createElement('span');
-    span.textContent = `${it.client} — ${formatNumber(it.amount)}`;
-    if (Number(it.amount) < 0) span.classList.add('neg');
+    const li=document.createElement('li'); const span=document.createElement('span');
+    span.textContent=`${it.client} — ${formatNumber(it.amount)}`;
+    if(Number(it.amount)<0) span.classList.add('neg');
     li.appendChild(span); ul.appendChild(li);
   });
   node.appendChild(ul);
 }
 $('#totalEfectivo').onclick=()=>{
   const d=$('#dropdownEfectivo'), o=$('#dropdownTarjeta');
-  if (d.style.display==='block'){ d.style.display='none'; return; }
+  if(d.style.display==='block'){d.style.display='none';return;}
   fillDropdown(historyData.filter(e=>e.type==='Efectivo'), d); d.style.display='block'; o.style.display='none';
 };
 $('#totalTarjeta').onclick=()=>{
   const d=$('#dropdownTarjeta'), o=$('#dropdownEfectivo');
-  if (d.style.display==='block'){ d.style.display='none'; return; }
+  if(d.style.display==='block'){d.style.display='none';return;}
   fillDropdown(historyData.filter(e=>e.type==='Tarjeta'), d); d.style.display='block'; o.style.display='none';
 };
 
-/* ===== Start ===== */
+/* === Start === */
 loadHistory(); updateUI();
-toggleClearBtn(clientInput, clearClientBtn);
-toggleClearBtn(amountInput, clearAmountBtn);
+toggleClearBtn($('#clientName'), $('#clearClient'));
+toggleClearBtn($('#amount'), $('#clearAmount'));
 </script>
 </body>
 </html>
