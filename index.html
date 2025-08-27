@@ -45,8 +45,12 @@
 
     form{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
     .payment-method{display:flex;align-items:center;gap:12px}
-    form button[type="submit"]{
-      padding:10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:var(--blue);color:var(--white);cursor:pointer
+    .payment-method label{cursor:pointer}
+    /* Fila Efectivo + Tarjeta + Agregar, todos juntos */
+    .pay-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .pay-row .btn-add-inline{
+      padding:10px;font-size:1em;border:1px solid var(--white);
+      border-radius:5px;background:var(--blue);color:var(--white);cursor:pointer
     }
 
     table{width:100%;border-collapse:collapse;margin-bottom:20px;background:#00000022;border-radius:8px;overflow:hidden}
@@ -104,12 +108,14 @@
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
 
-        <div class="payment-method">
-          <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
-          <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+        <!-- Efectivo + Tarjeta + Agregar EN LA MISMA LÍNEA -->
+        <div class="pay-row">
+          <div class="payment-method">
+            <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
+            <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+          </div>
+          <button class="btn-add-inline" type="submit">Agregar</button>
         </div>
-
-        <button type="submit">Agregar</button>
       </form>
 
       <!-- Tabla -->
@@ -308,7 +314,7 @@ $('#downloadExcel').onclick=async()=>{
   for(let i=0;i<max;i++){
     ws_data.push([
       ef[i]?.client||'', Number(ef[i]?.amount??''),
-      '', 
+      '',
       ta[i]?.client||'', Number(ta[i]?.amount??'')
     ]);
   }
