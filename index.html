@@ -18,24 +18,21 @@
       --white: #fff;
       --black: #000;
       --blue: #008CBA;
+      --neg: #ff6b6b;
     }
     * { box-sizing: border-box; }
-
     html, body {
       height: 100%; margin: 0;
       background: var(--coffee); color: var(--white);
       font-family: Arial, sans-serif;
       overscroll-behavior: none;
     }
-
     .page { min-height: 100vh; padding: 20px; }
 
     header {
       padding: 16px 20px;
-      background-color: var(--orange);
-      color: var(--white);
-      border-radius: 8px;
-      margin-bottom: 16px;
+      background-color: var(--orange); color: var(--white);
+      border-radius: 8px; margin-bottom: 16px;
       display: flex; align-items: center; justify-content: center; gap: 12px;
       text-align: center;
     }
@@ -78,9 +75,11 @@
     table, th, td { border: 1px solid var(--white); }
     th, td { padding: 10px; text-align: center; }
     .editBtn { border: 1px solid var(--white); background-color: var(--blue); color: var(--white); border-radius: 5px; padding: 10px; cursor: pointer; }
+    .neg { color: var(--neg); font-weight: 600; }
 
     .summary { display: flex; justify-content: space-around; gap: 10px; flex-wrap: wrap; padding: 10px; background: var(--orange-dark); border: 1px solid var(--white); border-radius: 5px; }
     #totalEfectivo, #totalTarjeta { cursor: pointer; text-decoration: underline; }
+    .totalValue.neg { color: var(--neg); }
 
     .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
     .buttons button { flex: 1; min-width: 180px; padding: 10px; background: var(--orange); border: none; color: var(--white); border-radius: 5px; cursor: pointer; }
@@ -107,7 +106,6 @@
 <body>
   <div class="page">
     <header>
-      <!-- Asegúrate de que el archivo existe en la raíz del repo -->
       <img src="logo-candelas.jpg" alt="Logo Candelas" class="logo">
       <h1>Liquidación diaria</h1>
     </header>
@@ -125,12 +123,14 @@
           <input type="text" id="clientName" placeholder="Nombre del cliente" required>
           <button class="clear-btn" id="clearClient" type="button" aria-label="Limpiar cliente">×</button>
         </div>
+
         <div class="field">
-          <!-- inputmode numeric + pattern permite '-' (abonos) en iOS/Android -->
+          <!-- IMPORTANTE: text + inputmode=decimal para que salga el “–” en móvil -->
           <input type="text" id="amount" placeholder="Importe cobrado" required
-                 inputmode="numeric" pattern="-?[0-9]*[.,]?[0-9]*" autocomplete="off">
+                 inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" autocomplete="off">
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
+
         <div class="payment-method">
           <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
           <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
@@ -139,15 +139,23 @@
       </form>
 
       <!-- Tabla -->
-      <table id="historyTable"><thead>
-        <tr><th>Cliente</th><th>Importe</th><th>Forma de pago</th><th>Acciones</th></tr>
-      </thead><tbody></tbody></table>
+      <table id="historyTable">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Importe</th>
+            <th>Forma de pago</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
       <!-- Resumen -->
       <div class="summary">
-        <div><strong>Total Efectivo:</strong> <span id="totalEfectivo">0,00</span></div>
-        <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta">0,00</span></div>
-        <div><strong>Total General:</strong> <span id="totalGeneral">0,00</span></div>
+        <div><strong>Total Efectivo:</strong> <span id="totalEfectivo" class="totalValue">0,00</span></div>
+        <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta" class="totalValue">0,00</span></div>
+        <div><strong>Total General:</strong> <span id="totalGeneral" class="totalValue">0,00</span></div>
       </div>
 
       <!-- Dropdowns -->
@@ -171,8 +179,7 @@
         <input type="text" id="editClient" />
 
         <label for="editAmount">Importe</label>
-        <!-- también permitimos negativos aquí -->
-        <input type="text" id="editAmount" inputmode="numeric" pattern="-?[0-9]*[.,]?[0-9]*" />
+        <input type="text" id="editAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
 
         <label for="editPayment">Forma de pago</label>
         <select id="editPayment">
@@ -215,18 +222,25 @@
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-function formatNumber(n){ return Number(n||0).toFixed(2).replace('.',','); }
+function formatNumber(n){
+  const num = Number(n||0);
+  const txt = num.toFixed(2).replace('.', ','); // mantiene el signo
+  return txt;
+}
 function parseAmount(v){
   if (v == null) return NaN;
-  // admite "-", coma o punto
-  const cleaned = String(v).replace(/\s+/g,'').replace(',', '.');
+  const cleaned = String(v).trim().replace(',', '.'); // coma -> punto
+  // admite "-", dígitos y punto
   if (!/^[-+]?\d*\.?\d*$/.test(cleaned)) return NaN;
   return parseFloat(cleaned);
+}
+function setNegColor(el, value){
+  if (Number(value) < 0) el.classList.add('neg'); else el.classList.remove('neg');
 }
 
 /* ===== Estado ===== */
 let historyData=[]; let currentEditIndex=null;
-function loadHistory(){ try{ historyData = JSON.parse(localStorage.getItem('history')||'[]'); if(!Array.isArray(historyData)) historyData=[]; }catch{ historyData=[]; } }
+function loadHistory(){ try{ historyData=JSON.parse(localStorage.getItem('history')||'[]'); if(!Array.isArray(historyData)) historyData=[]; }catch{ historyData=[]; } }
 function saveHistory(){ localStorage.setItem('history', JSON.stringify(historyData)); }
 function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild); }
 
@@ -234,16 +248,32 @@ function clearNode(n){ while(n.firstChild) n.removeChild(n.firstChild); }
 function updateUI(){
   const tb = $('#historyTable tbody'); clearNode(tb);
   let tE=0, tT=0;
+
   historyData.forEach((e,i)=>{
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${e.client}</td><td>${formatNumber(e.amount)}</td><td>${e.type}</td>
-                    <td><button class="editBtn" data-i="${i}">Editar</button></td>`;
+
+    const tdClient = document.createElement('td'); tdClient.textContent = e.client;
+    const tdAmount = document.createElement('td');  tdAmount.textContent = formatNumber(e.amount); setNegColor(tdAmount, e.amount);
+    const tdType   = document.createElement('td');  tdType.textContent   = e.type;
+    const tdAct    = document.createElement('td');
+    const btnEdit  = document.createElement('button');
+    btnEdit.type='button'; btnEdit.className='editBtn'; btnEdit.textContent='Editar'; btnEdit.dataset.i=String(i);
+    tdAct.appendChild(btnEdit);
+
+    tr.appendChild(tdClient); tr.appendChild(tdAmount); tr.appendChild(tdType); tr.appendChild(tdAct);
     tb.appendChild(tr);
+
     if (e.type === 'Efectivo') tE += +e.amount; else tT += +e.amount;
   });
-  $('#totalEfectivo').textContent = formatNumber(tE);
-  $('#totalTarjeta').textContent  = formatNumber(tT);
-  $('#totalGeneral').textContent  = formatNumber(tE + tT);
+
+  const elTE = $('#totalEfectivo');
+  const elTT = $('#totalTarjeta');
+  const elTG = $('#totalGeneral');
+
+  elTE.textContent = formatNumber(tE); setNegColor(elTE, tE);
+  elTT.textContent = formatNumber(tT); setNegColor(elTT, tT);
+  elTG.textContent = formatNumber(tE + tT); setNegColor(elTG, tE + tT);
+
   $$('.editBtn').forEach(b => b.onclick = () => { currentEditIndex = +b.dataset.i; openEditModal(currentEditIndex); });
 }
 
@@ -252,9 +282,8 @@ function customConfirm(message, cb){
   $('#confirmMessage').textContent = message;
   const m = $('#confirmModal'); m.style.display = 'block';
   const a = $('#confirmAccept'), c = $('#confirmCancel');
-  function clean(){ a.onclick = c.onclick = null; m.style.display='none'; }
-  a.onclick = ()=>{ clean(); cb(true); };
-  c.onclick = ()=>{ clean(); cb(false); };
+  function clean(){ a.onclick=c.onclick=null; m.style.display='none'; }
+  a.onclick=()=>{ clean(); cb(true); }; c.onclick=()=>{ clean(); cb(false); };
 }
 function customAlert(message, cb){
   $('#alertMessage').textContent = message;
@@ -384,22 +413,28 @@ $('#downloadExcel').onclick = async ()=>{
 };
 
 /* ===== Dropdowns ===== */
-function clearNodeAndFill(list, node){
+function fillDropdown(list, node){
   clearNode(node);
   if (!list.length) { const em=document.createElement('em'); em.textContent='Sin registros.'; node.appendChild(em); return; }
   const ul=document.createElement('ul'); ul.style.listStyle='none'; ul.style.margin='0'; ul.style.padding='0';
-  list.forEach(it=>{ const li=document.createElement('li'); li.textContent=`${it.client} — ${formatNumber(it.amount)}`; ul.appendChild(li); });
+  list.forEach(it=>{
+    const li=document.createElement('li');
+    const span=document.createElement('span');
+    span.textContent = `${it.client} — ${formatNumber(it.amount)}`;
+    if (Number(it.amount) < 0) span.classList.add('neg');
+    li.appendChild(span); ul.appendChild(li);
+  });
   node.appendChild(ul);
 }
 $('#totalEfectivo').onclick=()=>{
   const d=$('#dropdownEfectivo'), o=$('#dropdownTarjeta');
   if (d.style.display==='block'){ d.style.display='none'; return; }
-  clearNodeAndFill(historyData.filter(e=>e.type==='Efectivo'), d); d.style.display='block'; o.style.display='none';
+  fillDropdown(historyData.filter(e=>e.type==='Efectivo'), d); d.style.display='block'; o.style.display='none';
 };
 $('#totalTarjeta').onclick=()=>{
   const d=$('#dropdownTarjeta'), o=$('#dropdownEfectivo');
   if (d.style.display==='block'){ d.style.display='none'; return; }
-  clearNodeAndFill(historyData.filter(e=>e.type==='Tarjeta'), d); d.style.display='block'; o.style.display='none';
+  fillDropdown(historyData.filter(e=>e.type==='Tarjeta'), d); d.style.display='block'; o.style.display='none';
 };
 
 /* ===== Start ===== */
