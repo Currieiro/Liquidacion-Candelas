@@ -280,9 +280,17 @@ $('#paymentForm').onsubmit=e=>{
   if(!c||isNaN(a)||!t){customAlert('Faltan datos válidos');return;}
   historyData.push({client:c,amount:a,type:t});
   saveHistory(); updateUI();
-  e.target.reset(); clientInput.value=''; amountInput.value='';
+
+  // Reset y **ocultar teclado**: NO volvemos a hacer focus y forzamos blur
+  e.target.reset();
+  clientInput.value=''; amountInput.value='';
   toggleClearBtn(clientInput,clearClientBtn); toggleClearBtn(amountInput,clearAmountBtn);
-  clientInput.focus();
+
+  // Blur explícito (iOS/Android): oculta el teclado hasta que toques otra vez un campo
+  clientInput.blur(); amountInput.blur();
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
 };
 
 /* === Borrar historial === */
