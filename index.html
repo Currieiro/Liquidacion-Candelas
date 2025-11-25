@@ -447,7 +447,7 @@ $('#downloadExcel').onclick=async()=>{
   ws_data.push(['Fecha: '+d]);
   ws_data.push([]);
 
-  // fila de tipos en mayúsculas, con columna estrecha entre bloques
+  // fila de tipos en mayúsculas, con columna separadora
   const typeRow = [];
   activeTypes.forEach(type=>{
     typeRow.push(type.toUpperCase(),'',''); // nombre sobre 2 cols + 1 col estrecha
@@ -477,12 +477,14 @@ $('#downloadExcel').onclick=async()=>{
 
   ws_data.push([]);
 
+  // Totales por tipo
   const totalsRow = [];
   activeTypes.forEach(type=>{
     totalsRow.push('Total '+type, Number(totals[type]), '');
   });
   ws_data.push(totalsRow);
 
+  // Total general
   const totalCols = activeTypes.length*3;
   const totalGeneralRow = [];
   totalGeneralRow.push('Total General', Number(totalGeneral));
@@ -495,9 +497,9 @@ $('#downloadExcel').onclick=async()=>{
   const cols=[];
   for(let i=0;i<totalCols;i++){
     const mod=i%3;
-    if(mod===0) cols.push({wch:18});      // Cliente
-    else if(mod===1) cols.push({wch:12}); // Importe
-    else cols.push({wch:4});              // separador
+    if(mod===0) cols.push({wch:18});
+    else if(mod===1) cols.push({wch:12});
+    else cols.push({wch:4});
   }
   ws['!cols']=cols;
 
@@ -538,14 +540,14 @@ $('#downloadExcel').onclick=async()=>{
     }
   }
 
-  styleRow(0, {bold:true, center:true});
-  styleRow(1, {center:true});
-  styleRow(typeRowIndex, {bold:true, center:true, fillColor:'FFF3CD'});
-  styleRow(headerRowIndex, {bold:true, center:true, fillColor:'DDEBF7'});
-  styleRow(totalsRowIndex, {bold:true, center:false, fillColor:'FFF2CC'});
-  styleRow(totalGeneralRowIndex, {bold:true, center:false, fillColor:'F8CBAD'});
+  styleRow(0, {bold:true, center:true});          // Título
+  styleRow(1, {center:true});                     // Fecha
+  styleRow(typeRowIndex, {bold:true, center:true}); // EFECTIVO / TARJETA...
+  styleRow(headerRowIndex, {bold:true, center:true}); // Cliente / Importe
+  styleRow(totalsRowIndex, {bold:true});          // Totales por tipo (solo negrita)
+  styleRow(totalGeneralRowIndex, {bold:true});    // Total general (solo negrita)
 
-  // Formato numérico: siempre dos decimales, sin símbolo €
+  // Formato numérico siempre con dos decimales (sin símbolo €)
   const range = XLSX.utils.decode_range(ws['!ref']);
   for(let R=0; R<=range.e.r; ++R){
     for(let C=0; C<=range.e.c; ++C){
