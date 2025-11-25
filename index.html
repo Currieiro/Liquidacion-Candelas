@@ -31,7 +31,6 @@
       padding:10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white);width:180px
     }
 
-    /* Campos con botones */
     .field{position:relative;flex:1 1 200px;min-width:160px}
     .field input{
       width:100%;padding:10px 72px 10px 10px;font-size:1em;border:1px solid var(--white);border-radius:5px;background:transparent;color:var(--white)
@@ -63,7 +62,6 @@
     .editBtn{border:1px solid var(--white);background:var(--blue);color:var(--white);border-radius:5px;padding:10px;cursor:pointer}
     .neg{color:var(--neg);font-weight:600}
 
-    /* Colores sutiles por forma de pago */
     .pay-cash td:first-child{border-left:4px solid #7bd389;}
     .pay-card td:first-child{border-left:4px solid #4da6ff;}
     .pay-bizum td:first-child{border-left:4px solid #b084f5;}
@@ -96,7 +94,6 @@
       opacity:0.8;
     }
 
-    /* Modales */
     .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
     .modal-content{background:var(--white);color:var(--black);margin:8% auto;padding:20px;border-radius:12px;width:360px;max-width:calc(100% - 24px)}
     .modal-content h2{margin:0 0 12px 0;text-align:center}
@@ -118,13 +115,11 @@
     </header>
 
     <div class="container">
-      <!-- Fecha -->
       <div class="date-input">
         <label for="reportDate">Fecha (DD/MM/AAAA):</label>
         <input type="text" id="reportDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" autocomplete="off">
       </div>
 
-      <!-- Formulario -->
       <form id="paymentForm" autocomplete="off">
         <div class="field">
           <input type="text" id="clientName" placeholder="Nombre del cliente" autocomplete="off" required>
@@ -138,7 +133,6 @@
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
 
-        <!-- Formas de pago + Agregar EN LA MISMA LÍNEA -->
         <div class="pay-row">
           <div class="payment-method">
             <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
@@ -150,7 +144,6 @@
         </div>
       </form>
 
-      <!-- Tabla -->
       <table id="historyTable">
         <thead>
           <tr><th>Cliente</th><th>Importe</th><th>Forma de pago</th><th>Acciones</th></tr>
@@ -158,7 +151,6 @@
         <tbody></tbody>
       </table>
 
-      <!-- Resumen -->
       <div class="summary">
         <div><strong>Efectivo:</strong> <span id="totalEfectivo" class="totalValue">0,00</span></div>
         <div><strong>Tarjeta:</strong> <span id="totalTarjeta" class="totalValue">0,00</span></div>
@@ -167,19 +159,16 @@
         <div><strong>Total:</strong> <span id="totalGeneral" class="totalValue">0,00</span></div>
       </div>
 
-      <!-- Dropdowns -->
       <div id="dropdownEfectivo" class="dropdown"></div>
       <div id="dropdownTarjeta" class="dropdown"></div>
       <div id="dropdownBizum" class="dropdown"></div>
       <div id="dropdownTalon" class="dropdown"></div>
 
-      <!-- Botones -->
       <div class="buttons">
         <button id="downloadExcel">Descargar / Compartir Excel</button>
         <button id="clearHistory">Borrar Historial</button>
       </div>
 
-      <!-- Versión -->
       <footer class="footer">
         <span>Versión <span id="appVersion"></span></span>
         <span id="appRevision"></span>
@@ -187,7 +176,6 @@
     </div>
   </div>
 
-  <!-- Modal edición -->
   <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Editar entrada</h2>
@@ -212,7 +200,6 @@
     </div>
   </div>
 
-  <!-- Confirmación -->
   <div id="confirmModal" class="modal">
     <div class="modal-content">
       <p id="confirmMessage">¿Seguro?</p>
@@ -223,7 +210,6 @@
     </div>
   </div>
 
-  <!-- Alerta -->
   <div id="alertModal" class="modal">
     <div class="modal-content">
       <p id="alertMessage">Mensaje</p>
@@ -234,9 +220,7 @@
   </div>
 
 <script>
-/* === Versión automática basada en fecha/hora del fichero === */
-const APP_BASE_VERSION = '1.3'; // Cambia esto cuando haya cambios "gordos"
-
+const APP_BASE_VERSION = '1.3';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -248,7 +232,6 @@ function computeAppVersion() {
 }
 const APP_VERSION = computeAppVersion();
 
-/* === Helpers === */
 const $=s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
 function formatNumber(n){return Number(n||0).toFixed(2).replace('.',',');}
 function parseAmount(v){
@@ -259,7 +242,6 @@ function parseAmount(v){
 }
 function setNegColor(el,v){Number(v)<0?el.classList.add('neg'):el.classList.remove('neg');}
 
-/* === Estado === */
 let historyData=[];let currentEditIndex=null;let revision=0;
 
 function loadHistory(){
@@ -269,7 +251,6 @@ function loadHistory(){
   }catch{historyData=[]}
 
   const storedVersion = localStorage.getItem('appVersion');
-
   if(storedVersion !== APP_VERSION){
     revision = 0;
     localStorage.setItem('appVersion', APP_VERSION);
@@ -292,7 +273,6 @@ function bumpRevision(){
 }
 function clearNode(n){while(n.firstChild)n.removeChild(n.firstChild);}
 
-/* === UI === */
 function updateUI(){
   const tb=$('#historyTable tbody');clearNode(tb);
   let tE=0,tT=0,tB=0,tL=0;
@@ -344,7 +324,6 @@ function updateUI(){
   $$('.editBtn').forEach(b=>b.onclick=()=>{currentEditIndex=+b.dataset.i;openEditModal(currentEditIndex);});
 }
 
-/* === Modales === */
 function customConfirm(msg,cb){
   $('#confirmMessage').textContent=msg;
   const m=$('#confirmModal');m.style.display='block';
@@ -386,7 +365,6 @@ $('#deleteLine').onclick=()=>{
   });
 };
 
-/* === Formulario === */
 const clientInput=$('#clientName'); const amountInput=$('#amount');
 const clearClientBtn=$('#clearClient'); const clearAmountBtn=$('#clearAmount'); const toggleSignBtn=$('#toggleSign');
 
@@ -421,20 +399,17 @@ $('#paymentForm').onsubmit=e=>{
   }
 };
 
-/* === Borrar historial === */
 $('#clearHistory').onclick=()=>customConfirm('¿Borrar historial?', ok=>{
   if(ok){
     historyData=[];
     saveHistory();
     updateUI();
-    // también limpiamos la fecha
     const dateInput = $('#reportDate');
     if(dateInput) dateInput.value = '';
     bumpRevision();
   }
 });
 
-/* === Máscara de fecha === */
 $('#reportDate').addEventListener('input',function(){
   let v=this.value.replace(/\D/g,'');
   if(v.length>2&&v.length<=4) v=v.slice(0,2)+'/'+v.slice(2);
@@ -442,7 +417,7 @@ $('#reportDate').addEventListener('input',function(){
   this.value=v;
 });
 
-/* === Descargar / Compartir Excel === */
+/* === Excel === */
 function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
 $('#downloadExcel').onclick=async()=>{
   const d=$('#reportDate').value.trim();
@@ -453,7 +428,6 @@ $('#downloadExcel').onclick=async()=>{
 
   const allTypes = ['Efectivo','Tarjeta','Bizum','Talón'];
   const activeTypes = allTypes.filter(type => historyData.some(e=>e.type===type));
-
   if(activeTypes.length===0){
     customAlert('No hay datos para exportar.');
     return;
@@ -469,36 +443,33 @@ $('#downloadExcel').onclick=async()=>{
   const totalGeneral = activeTypes.reduce((s,type)=>s+totals[type],0);
 
   const ws_data = [];
-
-  // Título y fecha
   ws_data.push(['Liquidación diaria']);
   ws_data.push(['Fecha: '+d]);
   ws_data.push([]);
 
-  // Cabecera de tipos (Efectivo, Tarjeta, ...) en mayúsculas
+  // fila de tipos en mayúsculas, con columna estrecha entre bloques
   const typeRow = [];
   activeTypes.forEach(type=>{
-    typeRow.push(type.toUpperCase(),'');
+    typeRow.push(type.toUpperCase(),'',''); // nombre sobre 2 cols + 1 col estrecha
   });
   ws_data.push(typeRow);
 
-  // Fila Cliente / Importe
+  // fila Cliente / Importe + separador
   const headerRow = [];
   activeTypes.forEach(()=>{
-    headerRow.push('Cliente','Importe');
+    headerRow.push('Cliente','Importe','');
   });
   ws_data.push(headerRow);
 
-  // Filas de datos
   const maxLen = Math.max(...activeTypes.map(t=>groups[t].length));
   for(let i=0;i<maxLen;i++){
     const row = [];
     activeTypes.forEach(type=>{
       const item = groups[type][i];
       if(item){
-        row.push(item.client, Number(item.amount));
+        row.push(item.client, Number(item.amount), '');
       }else{
-        row.push('','');
+        row.push('','','');
       }
     });
     ws_data.push(row);
@@ -506,29 +477,27 @@ $('#downloadExcel').onclick=async()=>{
 
   ws_data.push([]);
 
-  // Totales por tipo
   const totalsRow = [];
   activeTypes.forEach(type=>{
-    totalsRow.push('Total '+type, Number(totals[type]));
+    totalsRow.push('Total '+type, Number(totals[type]), '');
   });
   ws_data.push(totalsRow);
 
-  // Total general
+  const totalCols = activeTypes.length*3;
   const totalGeneralRow = [];
   totalGeneralRow.push('Total General', Number(totalGeneral));
-  for(let i=2;i<activeTypes.length*2;i++){
-    totalGeneralRow.push('');
-  }
+  while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
   ws_data.push(totalGeneralRow);
 
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
 
-  const totalCols = activeTypes.length*2;
-
   const cols=[];
   for(let i=0;i<totalCols;i++){
-    cols.push({wch: i%2===0 ? 18 : 12});
+    const mod=i%3;
+    if(mod===0) cols.push({wch:18});      // Cliente
+    else if(mod===1) cols.push({wch:12}); // Importe
+    else cols.push({wch:4});              // separador
   }
   ws['!cols']=cols;
 
@@ -543,7 +512,7 @@ $('#downloadExcel').onclick=async()=>{
     {s:{r:1,c:0},e:{r:1,c:totalCols-1}}
   ];
   activeTypes.forEach((type,idx)=>{
-    const startCol = idx*2;
+    const startCol = idx*3;
     merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+1}});
   });
   ws['!merges']=merges;
@@ -569,22 +538,24 @@ $('#downloadExcel').onclick=async()=>{
     }
   }
 
-  styleRow(0, {bold:true, center:true});   // título
-  styleRow(1, {center:true});              // fecha
-  styleRow(typeRowIndex, {
-    bold:true,
-    center:true,
-    fillColor:'FFF3CD'                     // tipos (EFECTIVO, TARJETA...)
-  });
-  styleRow(headerRowIndex, {
-    bold:true,
-    center:true,
-    fillColor:'DDEBF7'                     // Cliente / Importe
-  });
-  styleRow(totalsRowIndex, {bold:true});
-  styleRow(totalGeneralRowIndex, {bold:true});
+  styleRow(0, {bold:true, center:true});
+  styleRow(1, {center:true});
+  styleRow(typeRowIndex, {bold:true, center:true, fillColor:'FFF3CD'});
+  styleRow(headerRowIndex, {bold:true, center:true, fillColor:'DDEBF7'});
+  styleRow(totalsRowIndex, {bold:true, center:false, fillColor:'FFF2CC'});
+  styleRow(totalGeneralRowIndex, {bold:true, center:false, fillColor:'F8CBAD'});
 
-  // Sin formato de moneda, para poder copiar / pegar números directamente
+  // Formato numérico: siempre dos decimales, sin símbolo €
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let R=0; R<=range.e.r; ++R){
+    for(let C=0; C<=range.e.c; ++C){
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      const cell = ws[addr];
+      if(cell && typeof cell.v === 'number'){
+        cell.z = '0.00';
+      }
+    }
+  }
 
   XLSX.utils.book_append_sheet(wb,ws,'Historial');
 
@@ -607,7 +578,6 @@ $('#downloadExcel').onclick=async()=>{
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 };
 
-/* === Dropdowns === */
 function fillDropdown(list,node){
   clearNode(node);
   if(!list.length){
@@ -674,7 +644,6 @@ $('#totalTalon').onclick=()=>{
   }
 };
 
-/* === Start === */
 loadHistory();
 updateUI();
 updateVersionUI();
