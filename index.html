@@ -40,7 +40,7 @@
       position:absolute;top:50%;transform:translateY(-50%);height:24px;min-width:24px;border:1px solid var(--white);
       color:var(--white);background:transparent;border-radius:50%;cursor:pointer;font-size:16px;display:none;align-items:center;justify-content:center;padding:0
     }
-    .field .sign-btn{right:40px;display:inline-flex} /* ± siempre visible */
+    .field .sign-btn{right:40px;display:inline-flex}
     .field .clear-btn{right:8px}
 
     form{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
@@ -270,7 +270,6 @@ function loadHistory(){
 
   const storedVersion = localStorage.getItem('appVersion');
 
-  // Si cambia la versión de app, reseteamos revisión
   if(storedVersion !== APP_VERSION){
     revision = 0;
     localStorage.setItem('appVersion', APP_VERSION);
@@ -412,7 +411,6 @@ $('#paymentForm').onsubmit=e=>{
   historyData.push({client:c,amount:a,type:t});
   saveHistory(); updateUI(); bumpRevision();
 
-  // Reset y ocultar teclado
   e.target.reset();
   clientInput.value=''; amountInput.value='';
   toggleClearBtn(clientInput,clearClientBtn); toggleClearBtn(amountInput,clearAmountBtn);
@@ -426,7 +424,13 @@ $('#paymentForm').onsubmit=e=>{
 /* === Borrar historial === */
 $('#clearHistory').onclick=()=>customConfirm('¿Borrar historial?', ok=>{
   if(ok){
-    historyData=[];saveHistory();updateUI();bumpRevision();
+    historyData=[];
+    saveHistory();
+    updateUI();
+    // también limpiamos la fecha
+    const dateInput = $('#reportDate');
+    if(dateInput) dateInput.value = '';
+    bumpRevision();
   }
 });
 
@@ -438,7 +442,7 @@ $('#reportDate').addEventListener('input',function(){
   this.value=v;
 });
 
-/* === Descargar / Compartir Excel: bloques por forma de pago, totales debajo, sin símbolo € === */
+/* === Descargar / Compartir Excel === */
 function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
 $('#downloadExcel').onclick=async()=>{
   const d=$('#reportDate').value.trim();
@@ -455,7 +459,6 @@ $('#downloadExcel').onclick=async()=>{
     return;
   }
 
-  // Grupos por tipo y totales
   const groups = {};
   const totals = {};
   activeTypes.forEach(type=>{
@@ -472,14 +475,14 @@ $('#downloadExcel').onclick=async()=>{
   ws_data.push(['Fecha: '+d]);
   ws_data.push([]);
 
-  // Fila de títulos de tipo de pago (Efectivo, Tarjeta, ...)
+  // Cabecera de tipos (Efectivo, Tarjeta, ...) en mayúsculas
   const typeRow = [];
   activeTypes.forEach(type=>{
-    typeRow.push(type,'');
+    typeRow.push(type.toUpperCase(),'');
   });
   ws_data.push(typeRow);
 
-  // Fila de cabeceras Cliente / Importe
+  // Fila Cliente / Importe
   const headerRow = [];
   activeTypes.forEach(()=>{
     headerRow.push('Cliente','Importe');
@@ -495,52 +498,46 @@ $('#downloadExcel').onclick=async()=>{
       if(item){
         row.push(item.client, Number(item.amount));
       }else{
-        row.push('',''); // nada, para evitar ceros
+        row.push('','');
       }
     });
     ws_data.push(row);
   }
 
-  // Fila en blanco
   ws_data.push([]);
 
-  // Fila de totales por tipo
+  // Totales por tipo
   const totalsRow = [];
   activeTypes.forEach(type=>{
     totalsRow.push('Total '+type, Number(totals[type]));
   });
   ws_data.push(totalsRow);
 
-  // Fila de Total General (debajo, en primera pareja de columnas)
+  // Total general
   const totalGeneralRow = [];
   totalGeneralRow.push('Total General', Number(totalGeneral));
-  // resto vacío
   for(let i=2;i<activeTypes.length*2;i++){
     totalGeneralRow.push('');
   }
   ws_data.push(totalGeneralRow);
 
-  // Crear libro/hoja
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
 
   const totalCols = activeTypes.length*2;
 
-  // Anchos de columnas: cliente grande, importe más pequeño
   const cols=[];
   for(let i=0;i<totalCols;i++){
     cols.push({wch: i%2===0 ? 18 : 12});
   }
   ws['!cols']=cols;
 
-  // Índices
   const typeRowIndex = 3;
   const headerRowIndex = 4;
   const dataStartRowIndex = 5;
-  const totalsRowIndex = dataStartRowIndex + maxLen + 1; // después de datos + fila en blanco
+  const totalsRowIndex = dataStartRowIndex + maxLen + 1;
   const totalGeneralRowIndex = totalsRowIndex + 1;
 
-  // Merges: título, fecha, y nombres de tipo sobre sus dos columnas
   const merges = [
     {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
     {s:{r:1,c:0},e:{r:1,c:totalCols-1}}
@@ -551,7 +548,6 @@ $('#downloadExcel').onclick=async()=>{
   });
   ws['!merges']=merges;
 
-  // Estilos básicos
   function styleRow(r, {bold=false, center=false, fillColor=null}={}){
     for(let c=0;c<totalCols;c++){
       const addr = XLSX.utils.encode_cell({r,c});
@@ -578,17 +574,17 @@ $('#downloadExcel').onclick=async()=>{
   styleRow(typeRowIndex, {
     bold:true,
     center:true,
-    fillColor:'FFF3CD'                     // cabecera tipos
+    fillColor:'FFF3CD'                     // tipos (EFECTIVO, TARJETA...)
   });
   styleRow(headerRowIndex, {
     bold:true,
     center:true,
-    fillColor:'DDEBF7'                     // cabeceras Cliente/Importe
+    fillColor:'DDEBF7'                     // Cliente / Importe
   });
   styleRow(totalsRowIndex, {bold:true});
   styleRow(totalGeneralRowIndex, {bold:true});
 
-  // NO ponemos formato de moneda: los números se quedan limpios para copiar/pegar
+  // Sin formato de moneda, para poder copiar / pegar números directamente
 
   XLSX.utils.book_append_sheet(wb,ws,'Historial');
 
@@ -604,9 +600,7 @@ $('#downloadExcel').onclick=async()=>{
       await navigator.share({files:[file],title:'Liquidación diaria',text:fileName});
       return;
     }
-  }catch(_){
-    // Si cancela el share, seguimos a descarga
-  }
+  }catch(_){}
 
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
