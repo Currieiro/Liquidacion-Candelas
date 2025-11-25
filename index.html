@@ -44,7 +44,12 @@
     .field .clear-btn{right:8px}
 
     form{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
-    .payment-method{display:flex;align-items:center;gap:12px}
+    .payment-method{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
     .payment-method label{cursor:pointer}
     /* Fila Efectivo + Tarjeta + Agregar, todos juntos */
     .pay-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -59,12 +64,38 @@
     .editBtn{border:1px solid var(--white);background:var(--blue);color:var(--white);border-radius:5px;padding:10px;cursor:pointer}
     .neg{color:var(--neg);font-weight:600}
 
-    .summary{display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;padding:10px;background:var(--orange-dark);border:1px solid var(--white);border-radius:5px}
-    #totalEfectivo,#totalTarjeta{cursor:pointer;text-decoration:underline}
+    /* Colores sutiles por forma de pago */
+    .pay-cash td:first-child{border-left:4px solid #7bd389;}
+    .pay-card td:first-child{border-left:4px solid #4da6ff;}
+    .pay-bizum td:first-child{border-left:4px solid #b084f5;}
+    .pay-check td:first-child{border-left:4px solid #f5d76e;}
+
+    .pay-cash td:nth-child(3){color:#7bd389;}
+    .pay-card td:nth-child(3){color:#4da6ff;}
+    .pay-bizum td:nth-child(3){color:#b084f5;}
+    .pay-check td:nth-child(3){color:#f5d76e;}
+
+    .summary{
+      display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;
+      padding:10px;background:var(--orange-dark);border:1px solid var(--white);border-radius:5px
+    }
+    #totalEfectivo,#totalTarjeta,#totalBizum,#totalTalon{
+      cursor:pointer;text-decoration:underline
+    }
     .totalValue.neg{color:var(--neg)}
 
     .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
     .buttons button{flex:1;min-width:180px;padding:10px;background:var(--orange);border:none;color:var(--white);border-radius:5px;cursor:pointer}
+
+    footer.footer{
+      margin-top:16px;
+      padding:6px 10px;
+      font-size:0.85em;
+      color:#f5f5f5;
+      display:flex;
+      justify-content:space-between;
+      opacity:0.8;
+    }
 
     /* Modales */
     .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
@@ -108,11 +139,13 @@
           <button class="clear-btn" id="clearAmount" type="button" aria-label="Limpiar importe">×</button>
         </div>
 
-        <!-- Efectivo + Tarjeta + Agregar EN LA MISMA LÍNEA -->
+        <!-- Formas de pago + Agregar EN LA MISMA LÍNEA -->
         <div class="pay-row">
           <div class="payment-method">
             <label><input type="radio" name="paymentType" value="Efectivo"> Efectivo</label>
             <label><input type="radio" name="paymentType" value="Tarjeta"> Tarjeta</label>
+            <label><input type="radio" name="paymentType" value="Bizum"> Bizum</label>
+            <label><input type="radio" name="paymentType" value="Talón"> Talón</label>
           </div>
           <button class="btn-add-inline" type="submit">Agregar</button>
         </div>
@@ -128,20 +161,30 @@
 
       <!-- Resumen -->
       <div class="summary">
-        <div><strong>Total Efectivo:</strong> <span id="totalEfectivo" class="totalValue">0,00</span></div>
-        <div><strong>Total Tarjeta:</strong> <span id="totalTarjeta" class="totalValue">0,00</span></div>
-        <div><strong>Total General:</strong> <span id="totalGeneral" class="totalValue">0,00</span></div>
+        <div><strong>Efectivo:</strong> <span id="totalEfectivo" class="totalValue">0,00</span></div>
+        <div><strong>Tarjeta:</strong> <span id="totalTarjeta" class="totalValue">0,00</span></div>
+        <div><strong>Bizum:</strong> <span id="totalBizum" class="totalValue">0,00</span></div>
+        <div><strong>Talón:</strong> <span id="totalTalon" class="totalValue">0,00</span></div>
+        <div><strong>Total:</strong> <span id="totalGeneral" class="totalValue">0,00</span></div>
       </div>
 
       <!-- Dropdowns -->
       <div id="dropdownEfectivo" class="dropdown"></div>
       <div id="dropdownTarjeta" class="dropdown"></div>
+      <div id="dropdownBizum" class="dropdown"></div>
+      <div id="dropdownTalon" class="dropdown"></div>
 
       <!-- Botones -->
       <div class="buttons">
         <button id="downloadExcel">Descargar / Compartir Excel</button>
         <button id="clearHistory">Borrar Historial</button>
       </div>
+
+      <!-- Versión -->
+      <footer class="footer">
+        <span>Versión <span id="appVersion"></span></span>
+        <span id="appRevision"></span>
+      </footer>
     </div>
   </div>
 
@@ -158,6 +201,8 @@
         <select id="editPayment">
           <option value="Efectivo">Efectivo</option>
           <option value="Tarjeta">Tarjeta</option>
+          <option value="Bizum">Bizum</option>
+          <option value="Talón">Talón</option>
         </select>
       </div>
       <div class="modal-buttons">
@@ -190,6 +235,9 @@
   </div>
 
 <script>
+/* === Constantes de app / versión === */
+const APP_VERSION = '1.3.0';
+
 /* === Helpers === */
 const $=s=>document.querySelector(s); const $$=s=>Array.from(document.querySelectorAll(s));
 function formatNumber(n){return Number(n||0).toFixed(2).replace('.',',');}
@@ -202,14 +250,41 @@ function parseAmount(v){
 function setNegColor(el,v){Number(v)<0?el.classList.add('neg'):el.classList.remove('neg');}
 
 /* === Estado === */
-let historyData=[];let currentEditIndex=null;
-function loadHistory(){try{historyData=JSON.parse(localStorage.getItem('history')||'[]');if(!Array.isArray(historyData))historyData=[]}catch{historyData=[]}}
+let historyData=[];let currentEditIndex=null;let revision=0;
+
+function loadHistory(){
+  try{
+    historyData=JSON.parse(localStorage.getItem('history')||'[]');
+    if(!Array.isArray(historyData))historyData=[];
+  }catch{historyData=[]}
+  revision = Number(localStorage.getItem('dataRevision')||'0')||0;
+}
 function saveHistory(){localStorage.setItem('history',JSON.stringify(historyData));}
+function updateVersionUI(){
+  const vEl = $('#appVersion');
+  const rEl = $('#appRevision');
+  if(vEl) vEl.textContent = APP_VERSION;
+  if(rEl) rEl.textContent = 'Rev. '+revision;
+}
+function bumpRevision(){
+  revision++;
+  localStorage.setItem('dataRevision', String(revision));
+  updateVersionUI();
+}
 function clearNode(n){while(n.firstChild)n.removeChild(n.firstChild);}
 
 /* === UI === */
 function updateUI(){
-  const tb=$('#historyTable tbody');clearNode(tb);let tE=0,tT=0;
+  const tb=$('#historyTable tbody');clearNode(tb);
+  let tE=0,tT=0,tB=0,tL=0;
+
+  const typeClasses = {
+    'Efectivo':'pay-cash',
+    'Tarjeta':'pay-card',
+    'Bizum':'pay-bizum',
+    'Talón':'pay-check'
+  };
+
   historyData.forEach((e,i)=>{
     const tr=document.createElement('tr');
     const tdC=document.createElement('td');tdC.textContent=e.client;
@@ -218,23 +293,58 @@ function updateUI(){
     const tdAct=document.createElement('td');const btn=document.createElement('button');
     btn.type='button';btn.className='editBtn';btn.textContent='Editar';btn.dataset.i=i;
     tdAct.appendChild(btn);
-    tr.append(tdC,tdA,tdT,tdAct);tb.appendChild(tr);
-    if(e.type==='Efectivo')tE+=+e.amount;else tT+=+e.amount;
+    tr.append(tdC,tdA,tdT,tdAct);
+
+    const cls = typeClasses[e.type];
+    if(cls) tr.classList.add(cls);
+
+    tb.appendChild(tr);
+
+    switch(e.type){
+      case 'Efectivo': tE+=+e.amount; break;
+      case 'Tarjeta': tT+=+e.amount; break;
+      case 'Bizum':   tB+=+e.amount; break;
+      case 'Talón':   tL+=+e.amount; break;
+    }
   });
-  const elTE=$('#totalEfectivo'), elTT=$('#totalTarjeta'), elTG=$('#totalGeneral');
-  elTE.textContent=formatNumber(tE);setNegColor(elTE,tE);
-  elTT.textContent=formatNumber(tT);setNegColor(elTT,tT);
-  elTG.textContent=formatNumber(tE+tT);setNegColor(elTG,tE+tT);
+
+  const elTE=$('#totalEfectivo'),
+        elTT=$('#totalTarjeta'),
+        elTB=$('#totalBizum'),
+        elTL=$('#totalTalon'),
+        elTG=$('#totalGeneral');
+
+  elTE.textContent=formatNumber(tE); setNegColor(elTE,tE);
+  elTT.textContent=formatNumber(tT); setNegColor(elTT,tT);
+  elTB.textContent=formatNumber(tB); setNegColor(elTB,tB);
+  elTL.textContent=formatNumber(tL); setNegColor(elTL,tL);
+
+  const totalGeneral = tE+tT+tB+tL;
+  elTG.textContent=formatNumber(totalGeneral); setNegColor(elTG,totalGeneral);
+
   $$('.editBtn').forEach(b=>b.onclick=()=>{currentEditIndex=+b.dataset.i;openEditModal(currentEditIndex);});
 }
 
 /* === Modales === */
-function customConfirm(msg,cb){$('#confirmMessage').textContent=msg;const m=$('#confirmModal');m.style.display='block';const a=$('#confirmAccept'),c=$('#confirmCancel');function clean(){a.onclick=c.onclick=null;m.style.display='none'}a.onclick=()=>{clean();cb(true)};c.onclick=()=>{clean();cb(false)};}
-function customAlert(msg,cb){$('#alertMessage').textContent=msg;const m=$('#alertModal');m.style.display='block';$('#alertAccept').onclick=()=>{m.style.display='none';if(cb)cb();};}
+function customConfirm(msg,cb){
+  $('#confirmMessage').textContent=msg;
+  const m=$('#confirmModal');m.style.display='block';
+  const a=$('#confirmAccept'),c=$('#confirmCancel');
+  function clean(){a.onclick=c.onclick=null;m.style.display='none'}
+  a.onclick=()=>{clean();cb(true)};
+  c.onclick=()=>{clean();cb(false)};
+}
+function customAlert(msg,cb){
+  $('#alertMessage').textContent=msg;
+  const m=$('#alertModal');m.style.display='block';
+  $('#alertAccept').onclick=()=>{m.style.display='none';if(cb)cb();};
+}
 
 function openEditModal(i){
   const e=historyData[i]; if(!e) return;
-  $('#editClient').value=e.client; $('#editAmount').value=e.amount; $('#editPayment').value=e.type;
+  $('#editClient').value=e.client;
+  $('#editAmount').value=e.amount;
+  $('#editPayment').value=e.type;
   $('#editModal').style.display='block';
 }
 function closeEditModal(){$('#editModal').style.display='none';currentEditIndex=null;}
@@ -245,14 +355,15 @@ $('#saveEdit').onclick=()=>{
   const t=$('#editPayment').value;
   if(!c||isNaN(a)){customAlert('Datos inválidos');return;}
   historyData[currentEditIndex]={client:c,amount:a,type:t};
-  saveHistory();updateUI();closeEditModal();
+  saveHistory();updateUI();closeEditModal();bumpRevision();
 };
 $('#cancelEdit').onclick=closeEditModal;
 $('#deleteLine').onclick=()=>{
   const e=historyData[currentEditIndex]; if(!e) return;
   customConfirm(`¿Eliminar "${e.client}" (${formatNumber(e.amount)} - ${e.type})?`, ok=>{
     if(!ok) return;
-    historyData.splice(currentEditIndex,1); saveHistory(); updateUI(); closeEditModal();
+    historyData.splice(currentEditIndex,1);
+    saveHistory(); updateUI(); closeEditModal(); bumpRevision();
   });
 };
 
@@ -279,14 +390,13 @@ $('#paymentForm').onsubmit=e=>{
   const t=document.querySelector('input[name="paymentType"]:checked')?.value;
   if(!c||isNaN(a)||!t){customAlert('Faltan datos válidos');return;}
   historyData.push({client:c,amount:a,type:t});
-  saveHistory(); updateUI();
+  saveHistory(); updateUI(); bumpRevision();
 
-  // Reset y **ocultar teclado**: NO volvemos a hacer focus y forzamos blur
+  // Reset y ocultar teclado
   e.target.reset();
   clientInput.value=''; amountInput.value='';
   toggleClearBtn(clientInput,clearClientBtn); toggleClearBtn(amountInput,clearAmountBtn);
 
-  // Blur explícito (iOS/Android): oculta el teclado hasta que toques otra vez un campo
   clientInput.blur(); amountInput.blur();
   if (document.activeElement && typeof document.activeElement.blur === 'function') {
     document.activeElement.blur();
@@ -295,7 +405,9 @@ $('#paymentForm').onsubmit=e=>{
 
 /* === Borrar historial === */
 $('#clearHistory').onclick=()=>customConfirm('¿Borrar historial?', ok=>{
-  if(ok){historyData=[];saveHistory();updateUI();}
+  if(ok){
+    historyData=[];saveHistory();updateUI();bumpRevision();
+  }
 });
 
 /* === Máscara de fecha === */
@@ -312,41 +424,95 @@ $('#downloadExcel').onclick=async()=>{
   const d=$('#reportDate').value.trim();
   if(!/^\d{2}\/\d{2}\/\d{4}$/.test(d)){customAlert('Fecha inválida. Formato: DD/MM/AAAA.');return;}
 
-  const ef=historyData.filter(e=>e.type==='Efectivo');
-  const ta=historyData.filter(e=>e.type==='Tarjeta');
-  const te=ef.reduce((s,e)=>s+(+e.amount||0),0);
-  const tt=ta.reduce((s,e)=>s+(+e.amount||0),0);
-
-  const ws_data=[['Liquidación diaria'],['Fecha: '+d],[],['Efectivo','','','Tarjeta',''],['Cliente','Importe','','Cliente','Importe']];
-  const max=Math.max(ef.length,ta.length);
-  for(let i=0;i<max;i++){
-    ws_data.push([
-      ef[i]?.client||'', Number(ef[i]?.amount??''),
-      '',
-      ta[i]?.client||'', Number(ta[i]?.amount??'')
-    ]);
+  const allTypes = ['Efectivo','Tarjeta','Bizum','Talón'];
+  const activeTypes = allTypes.filter(type => historyData.some(e=>e.type===type));
+  if(activeTypes.length===0){
+    customAlert('No hay datos para exportar.');
+    return;
   }
+
+  const groups = activeTypes.map(type => historyData.filter(e=>e.type===type));
+  const totals = {};
+  activeTypes.forEach((type,idx)=>{
+    totals[type] = groups[idx].reduce((s,e)=>s+(+e.amount||0),0);
+  });
+
+  const ws_data=[
+    ['Liquidación diaria'],
+    ['Fecha: '+d],
+    []
+  ];
+
+  // Cabecera: nombres de formas de pago
+  const headerRow=[];
+  activeTypes.forEach(type=>{headerRow.push(type,'');});
+  ws_data.push(headerRow);
+
+  // Subcabecera
+  const subHeaderRow=[];
+  activeTypes.forEach(()=>{subHeaderRow.push('Cliente','Importe');});
+  ws_data.push(subHeaderRow);
+
+  const maxLen = Math.max(...groups.map(g=>g.length||0));
+  for(let i=0;i<maxLen;i++){
+    const row=[];
+    groups.forEach(group=>{
+      row.push(group[i]?.client||'', Number(group[i]?.amount??''));
+    });
+    ws_data.push(row);
+  }
+
   ws_data.push([]);
-  ws_data.push(['Total Efectivo', Number(te), '', 'Total Tarjeta', Number(tt)]);
-  ws_data.push(['Total General', Number(te+tt), '', '', '']);
+
+  const totalsRow=[];
+  activeTypes.forEach(type=>{
+    totalsRow.push('Total '+type, Number(totals[type]));
+  });
+  ws_data.push(totalsRow);
+
+  const totalGeneral = activeTypes.reduce((s,type)=>s+totals[type],0);
+  const totalCols = activeTypes.length*2;
+  const totalGeneralRow=['Total General', Number(totalGeneral)];
+  while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
+  ws_data.push(totalGeneralRow);
 
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!cols']=[{wch:25},{wch:15},{wch:3},{wch:25},{wch:15}];
-  ws['!merges']=[
-    {s:{r:0,c:0},e:{r:0,c:4}},
-    {s:{r:1,c:0},e:{r:1,c:4}},
-    {s:{r:3,c:0},e:{r:3,c:1}},
-    {s:{r:3,c:3},e:{r:3,c:4}}
-  ];
+
+  // Ancho de columnas
+  const cols=[];
+  for(let i=0;i<totalCols;i++){
+    cols.push({wch: i%2===0 ? 18 : 12});
+  }
+  ws['!cols']=cols;
+
+  // Merges dinámicos
+  const merges=[];
+  // Título
+  merges.push({s:{r:0,c:0},e:{r:0,c:totalCols-1}});
+  // Fecha
+  merges.push({s:{r:1,c:0},e:{r:1,c:totalCols-1}});
+  // Cabeceras por forma de pago (fila 3)
+  activeTypes.forEach((type,idx)=>{
+    const startCol = idx*2;
+    merges.push({s:{r:3,c:startCol},e:{r:3,c:startCol+1}});
+  });
+  ws['!merges']=merges;
+
   XLSX.utils.book_append_sheet(wb,ws,'Historial');
 
   const blob=new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const fileName='liquidacion_'+d.replace(/\//g,'-')+'.xlsx';
   const file=new File([blob],fileName,{type:blob.type});
 
-  try{ if(isShareSupported(file)){ await navigator.share({files:[file],title:'Liquidación diaria',text:fileName}); return; } }
-  catch(_){ /* si cancela el share, seguimos a descarga */ }
+  try{
+    if(isShareSupported(file)){
+      await navigator.share({files:[file],title:'Liquidación diaria',text:fileName});
+      return;
+    }
+  }catch(_){
+    // Si cancela el share, seguimos a descarga
+  }
 
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
@@ -356,29 +522,74 @@ $('#downloadExcel').onclick=async()=>{
 /* === Dropdowns === */
 function fillDropdown(list,node){
   clearNode(node);
-  if(!list.length){const em=document.createElement('em');em.textContent='Sin registros.';node.appendChild(em);return;}
-  const ul=document.createElement('ul'); ul.style.listStyle='none'; ul.style.margin='0'; ul.style.padding='0';
+  if(!list.length){
+    const em=document.createElement('em');
+    em.textContent='Sin registros.';
+    node.appendChild(em);
+    return;
+  }
+  const ul=document.createElement('ul');
+  ul.style.listStyle='none';
+  ul.style.margin='0';
+  ul.style.padding='0';
   list.forEach(it=>{
-    const li=document.createElement('li'); const span=document.createElement('span');
+    const li=document.createElement('li');
+    const span=document.createElement('span');
     span.textContent=`${it.client} — ${formatNumber(it.amount)}`;
     if(Number(it.amount)<0) span.classList.add('neg');
-    li.appendChild(span); ul.appendChild(li);
+    li.appendChild(span);
+    ul.appendChild(li);
   });
   node.appendChild(ul);
 }
+function hideAllDropdowns(){
+  ['dropdownEfectivo','dropdownTarjeta','dropdownBizum','dropdownTalon'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
+  });
+}
+
 $('#totalEfectivo').onclick=()=>{
-  const d=$('#dropdownEfectivo'), o=$('#dropdownTarjeta');
-  if(d.style.display==='block'){d.style.display='none';return;}
-  fillDropdown(historyData.filter(e=>e.type==='Efectivo'), d); d.style.display='block'; o.style.display='none';
+  const d=$('#dropdownEfectivo');
+  const isOpen=d.style.display==='block';
+  hideAllDropdowns();
+  if(!isOpen){
+    fillDropdown(historyData.filter(e=>e.type==='Efectivo'), d);
+    d.style.display='block';
+  }
 };
 $('#totalTarjeta').onclick=()=>{
-  const d=$('#dropdownTarjeta'), o=$('#dropdownEfectivo');
-  if(d.style.display==='block'){d.style.display='none';return;}
-  fillDropdown(historyData.filter(e=>e.type==='Tarjeta'), d); d.style.display='block'; o.style.display='none';
+  const d=$('#dropdownTarjeta');
+  const isOpen=d.style.display==='block';
+  hideAllDropdowns();
+  if(!isOpen){
+    fillDropdown(historyData.filter(e=>e.type==='Tarjeta'), d);
+    d.style.display='block';
+  }
+};
+$('#totalBizum').onclick=()=>{
+  const d=$('#dropdownBizum');
+  const isOpen=d.style.display==='block';
+  hideAllDropdowns();
+  if(!isOpen){
+    fillDropdown(historyData.filter(e=>e.type==='Bizum'), d);
+    d.style.display='block';
+  }
+};
+$('#totalTalon').onclick=()=>{
+  const d=$('#dropdownTalon');
+  const isOpen=d.style.display==='block';
+  hideAllDropdowns();
+  if(!isOpen){
+    fillDropdown(historyData.filter(e=>e.type==='Talón'), d);
+    d.style.display='block';
+  }
 };
 
 /* === Start === */
-loadHistory(); updateUI();
+loadHistory();
+updateUI();
+updateVersionUI();
 toggleClearBtn($('#clientName'), $('#clearClient'));
 toggleClearBtn($('#amount'), $('#clearAmount'));
 </script>
