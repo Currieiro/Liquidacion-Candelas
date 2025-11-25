@@ -51,7 +51,6 @@
       flex-wrap:wrap;
     }
     .payment-method label{cursor:pointer}
-    /* Fila formas de pago + Agregar */
     .pay-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .pay-row .btn-add-inline{
       padding:10px;font-size:1em;border:1px solid var(--white);
@@ -439,7 +438,7 @@ $('#reportDate').addEventListener('input',function(){
   this.value=v;
 });
 
-/* === Descargar / Compartir Excel (Resumen en columnas, totales debajo) === */
+/* === Descargar / Compartir Excel: bloques por forma de pago, totales debajo, sin símbolo € === */
 function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
 $('#downloadExcel').onclick=async()=>{
   const d=$('#reportDate').value.trim();
@@ -466,7 +465,6 @@ $('#downloadExcel').onclick=async()=>{
   });
   const totalGeneral = activeTypes.reduce((s,type)=>s+totals[type],0);
 
-  // --- Construcción de datos: cabecera, resumen en columnas, totales debajo y detalle ---
   const ws_data = [];
 
   // Título y fecha
@@ -474,71 +472,86 @@ $('#downloadExcel').onclick=async()=>{
   ws_data.push(['Fecha: '+d]);
   ws_data.push([]);
 
-  // Bloque RESUMEN (fila de título + fila de tipos + fila de totales)
-  ws_data.push(['Resumen']);
+  // Fila de títulos de tipo de pago (Efectivo, Tarjeta, ...)
+  const typeRow = [];
+  activeTypes.forEach(type=>{
+    typeRow.push(type,'');
+  });
+  ws_data.push(typeRow);
+
+  // Fila de cabeceras Cliente / Importe
   const headerRow = [];
-  activeTypes.forEach(type=>headerRow.push(type));
+  activeTypes.forEach(()=>{
+    headerRow.push('Cliente','Importe');
+  });
   ws_data.push(headerRow);
 
+  // Filas de datos
+  const maxLen = Math.max(...activeTypes.map(t=>groups[t].length));
+  for(let i=0;i<maxLen;i++){
+    const row = [];
+    activeTypes.forEach(type=>{
+      const item = groups[type][i];
+      if(item){
+        row.push(item.client, Number(item.amount));
+      }else{
+        row.push('',''); // nada, para evitar ceros
+      }
+    });
+    ws_data.push(row);
+  }
+
+  // Fila en blanco
+  ws_data.push([]);
+
+  // Fila de totales por tipo
   const totalsRow = [];
-  activeTypes.forEach(type=>totalsRow.push(Number(totals[type])));
+  activeTypes.forEach(type=>{
+    totalsRow.push('Total '+type, Number(totals[type]));
+  });
   ws_data.push(totalsRow);
 
-  ws_data.push([]);
-  ws_data.push(['Total general', Number(totalGeneral)]);
+  // Fila de Total General (debajo, en primera pareja de columnas)
+  const totalGeneralRow = [];
+  totalGeneralRow.push('Total General', Number(totalGeneral));
+  // resto vacío
+  for(let i=2;i<activeTypes.length*2;i++){
+    totalGeneralRow.push('');
+  }
+  ws_data.push(totalGeneralRow);
 
-  ws_data.push([]);
-  // Bloque DETALLE
-  ws_data.push(['Detalle']);
-  ws_data.push(['Forma de pago','Cliente','Importe']);
-
-  // Detalle ordenado por tipo de pago
-  const detailed = historyData
-    .filter(e => activeTypes.includes(e.type))
-    .sort((a,b)=>allTypes.indexOf(a.type)-allTypes.indexOf(b.type));
-
-  detailed.forEach(e=>{
-    ws_data.push([e.type, e.client, Number(e.amount||0)]);
-  });
-
-  // --- Crear hoja ---
+  // Crear libro/hoja
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
 
-  // Columnas: max entre nº de columnas de resumen y las 3 de detalle
-  const totalCols = Math.max(activeTypes.length, 3);
+  const totalCols = activeTypes.length*2;
 
-  // Ancho de columnas
+  // Anchos de columnas: cliente grande, importe más pequeño
   const cols=[];
   for(let i=0;i<totalCols;i++){
-    if(i===1){
-      cols.push({wch:26}); // Cliente / texto
-    }else{
-      cols.push({wch:16});
-    }
+    cols.push({wch: i%2===0 ? 18 : 12});
   }
   ws['!cols']=cols;
 
-  // Índices de filas clave
-  const resumenRowIndex = ws_data.findIndex(r=>r[0]==='Resumen');
-  const summaryHeaderRowIndex = resumenRowIndex + 1;
-  const summaryTotalsRowIndex = resumenRowIndex + 2;
-  const totalGeneralRowIndex = ws_data.findIndex(r=>r[0]==='Total general');
-  const detalleRowIndex = ws_data.findIndex(r=>r[0]==='Detalle');
-  const detalleHeaderRowIndex = detalleRowIndex + 1;
+  // Índices
+  const typeRowIndex = 3;
+  const headerRowIndex = 4;
+  const dataStartRowIndex = 5;
+  const totalsRowIndex = dataStartRowIndex + maxLen + 1; // después de datos + fila en blanco
+  const totalGeneralRowIndex = totalsRowIndex + 1;
 
-  // --- Merges para que quede limpio ---
-  ws['!merges'] = [
-    // Título y fecha ocupan todo el ancho
+  // Merges: título, fecha, y nombres de tipo sobre sus dos columnas
+  const merges = [
     {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
-    {s:{r:1,c:0},e:{r:1,c:totalCols-1}},
-    // "Resumen" sobre todo el bloque
-    {s:{r:resumenRowIndex,c:0},e:{r:resumenRowIndex,c:totalCols-1}},
-    // "Detalle" sobre las 3 primeras columnas (o todas si hay menos)
-    {s:{r:detalleRowIndex,c:0},e:{r:detalleRowIndex,c:Math.max(2,totalCols-1)}}
+    {s:{r:1,c:0},e:{r:1,c:totalCols-1}}
   ];
+  activeTypes.forEach((type,idx)=>{
+    const startCol = idx*2;
+    merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+1}});
+  });
+  ws['!merges']=merges;
 
-  // --- Estilos básicos ---
+  // Estilos básicos
   function styleRow(r, {bold=false, center=false, fillColor=null}={}){
     for(let c=0;c<totalCols;c++){
       const addr = XLSX.utils.encode_cell({r,c});
@@ -560,37 +573,22 @@ $('#downloadExcel').onclick=async()=>{
     }
   }
 
-  // Filas estéticas
-  styleRow(0, {bold:true, center:true});         // Título
-  styleRow(1, {center:true});                    // Fecha
-  styleRow(resumenRowIndex, {bold:true});        // "Resumen"
-  styleRow(summaryHeaderRowIndex, {
+  styleRow(0, {bold:true, center:true});   // título
+  styleRow(1, {center:true});              // fecha
+  styleRow(typeRowIndex, {
     bold:true,
     center:true,
-    fillColor:"FFF3CD"                           // cabecera resumen (amarillo suave)
+    fillColor:'FFF3CD'                     // cabecera tipos
   });
-  styleRow(summaryTotalsRowIndex, {bold:true});  // totales por forma de pago
-  if(totalGeneralRowIndex !== -1){
-    styleRow(totalGeneralRowIndex, {bold:true});
-  }
-  styleRow(detalleRowIndex, {bold:true});        // "Detalle"
-  styleRow(detalleHeaderRowIndex, {
+  styleRow(headerRowIndex, {
     bold:true,
     center:true,
-    fillColor:"DDEBF7"                           // cabecera detalle (azul suave)
+    fillColor:'DDEBF7'                     // cabeceras Cliente/Importe
   });
+  styleRow(totalsRowIndex, {bold:true});
+  styleRow(totalGeneralRowIndex, {bold:true});
 
-  // Formato de moneda a cualquier número
-  const range = XLSX.utils.decode_range(ws['!ref']);
-  for(let R=0; R<=range.e.r; ++R){
-    for(let C=0; C<=range.e.c; ++C){
-      const addr = XLSX.utils.encode_cell({r:R,c:C});
-      const cell = ws[addr];
-      if(cell && typeof cell.v === 'number'){
-        cell.z = '€ #,##0.00';
-      }
-    }
-  }
+  // NO ponemos formato de moneda: los números se quedan limpios para copiar/pegar
 
   XLSX.utils.book_append_sheet(wb,ws,'Historial');
 
