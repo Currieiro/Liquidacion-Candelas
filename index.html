@@ -68,7 +68,7 @@
     .pay-bizum td:first-child{border-left:4px solid #b084f5;}
     .pay-check td:first-child{border-left:4px solid #f5d76e;}
 
-    /* Forma de pago en color (columna 4 ahora) */
+    /* Forma de pago en color (ahora es la columna 4 de la tabla) */
     .pay-cash td:nth-child(4){color:#7bd389;}
     .pay-card td:nth-child(4){color:#4da6ff;}
     .pay-bizum td:nth-child(4){color:#b084f5;}
@@ -496,14 +496,15 @@ $('#downloadExcel').onclick=async()=>{
   // Fila de tipos en mayúsculas, con columna separadora
   const typeRow = [];
   activeTypes.forEach(type=>{
-    typeRow.push(type.toUpperCase(),'','',''); // nombre sobre 3 cols + 1 separadora
+    // nombre sobre 3 columnas (Cliente+Importe+Hora) + 1 separadora
+    typeRow.push(type.toUpperCase(),'','','');
   });
   ws_data.push(typeRow);
 
-  // Fila Cliente / Hora / Importe + separador
+  // Fila Cliente / Importe / Hora + separador (IMPORTANTE: Importe va segundo)
   const headerRow = [];
   activeTypes.forEach(()=>{
-    headerRow.push('Cliente','Hora','Importe','');
+    headerRow.push('Cliente','Importe','Hora','');
   });
   ws_data.push(headerRow);
 
@@ -514,7 +515,7 @@ $('#downloadExcel').onclick=async()=>{
     activeTypes.forEach(type=>{
       const item = groups[type][i];
       if(item){
-        row.push(item.client, item.time || '', Number(item.amount), '');
+        row.push(item.client, Number(item.amount), item.time || '', '');
       }else{
         row.push('','','','');
       }
@@ -527,13 +528,15 @@ $('#downloadExcel').onclick=async()=>{
   // Totales por tipo
   const totalsRow = [];
   activeTypes.forEach(type=>{
-    totalsRow.push('Total '+type, '', Number(totals[type]), '');
+    // Texto en col Cliente, importe en col Importe, Hora vacío
+    totalsRow.push('Total '+type, Number(totals[type]), '', '');
   });
   ws_data.push(totalsRow);
 
   // Total general
   const totalCols = activeTypes.length*4;
   const totalGeneralRow = [];
+  // "Total General" en primera col, importe en segunda, resto vacío
   totalGeneralRow.push('Total General', Number(totalGeneral));
   while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
   ws_data.push(totalGeneralRow);
@@ -546,8 +549,8 @@ $('#downloadExcel').onclick=async()=>{
   for(let i=0;i<totalCols;i++){
     const mod=i%4;
     if(mod===0) cols.push({wch:18});   // Cliente
-    else if(mod===1) cols.push({wch:8}); // Hora
-    else if(mod===2) cols.push({wch:12}); // Importe
+    else if(mod===1) cols.push({wch:12}); // Importe (más ancho)
+    else if(mod===2) cols.push({wch:8});  // Hora (más estrecho)
     else cols.push({wch:4});           // separador
   }
   ws['!cols']=cols;
@@ -565,6 +568,7 @@ $('#downloadExcel').onclick=async()=>{
   ];
   activeTypes.forEach((type,idx)=>{
     const startCol = idx*4;
+    // Merge sobre Cliente+Importe+Hora
     merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+2}});
   });
   ws['!merges']=merges;
