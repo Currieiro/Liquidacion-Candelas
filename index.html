@@ -451,6 +451,18 @@ function addDateMask(input){
     this.value=v;
   });
 }
+/* Nueva: máscara de hora HH:MM sobre teclado numérico */
+function addTimeMask(input){
+  if(!input) return;
+  input.addEventListener('input', function(){
+    let v = this.value.replace(/\D/g,'');
+    if(v.length<=2){
+      this.value = v;              // solo horas de momento
+    }else{
+      this.value = v.slice(0,2)+':'+v.slice(2,4); // HH:MM
+    }
+  });
+}
 
 /* === Estado === */
 let historyData=[];let currentEditIndex=null;let revision=0;
@@ -952,6 +964,8 @@ function initWeeklySection(){
 
   addDateMask(startDateEl);
   addDateMask(endDateEl);
+  addTimeMask(startTimeEl);
+  addTimeMask(endTimeEl);
 }
 
 /* === Excel semanal === */
@@ -1164,12 +1178,12 @@ if(btnDay && btnWeek){
 ['weekStartDate','weekStartTime','weekEndDate','weekEndTime'].forEach(id=>{
   const el=document.getElementById(id);
   if(id==='weekStartDate' || id==='weekEndDate') addDateMask(el);
+  if(id==='weekStartTime' || id==='weekEndTime') addTimeMask(el);
   if(el){
     el.addEventListener('change',()=>{
       if(viewMode==='week'){
         const range=getWeeklyRange();
         if(!range){
-          // si deja de ser válido, dejamos la vista, pero con datos vacíos
           updateUI();
         }else{
           updateUI();
@@ -1188,6 +1202,8 @@ updateVersionUI();
 toggleClearBtn($('#clientName'), $('#clearClient'));
 toggleClearBtn($('#amount'), $('#clearAmount'));
 initWeeklySection();
+/* Máscara también para el campo de edición de hora */
+addTimeMask($('#editTime'));
 </script>
 </body>
 </html>
