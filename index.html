@@ -68,10 +68,11 @@
     .pay-bizum td:first-child{border-left:4px solid #b084f5;}
     .pay-check td:first-child{border-left:4px solid #f5d76e;}
 
-    .pay-cash td:nth-child(3){color:#7bd389;}
-    .pay-card td:nth-child(3){color:#4da6ff;}
-    .pay-bizum td:nth-child(3){color:#b084f5;}
-    .pay-check td:nth-child(3){color:#f5d76e;}
+    /* Forma de pago en color (columna 4 ahora) */
+    .pay-cash td:nth-child(4){color:#7bd389;}
+    .pay-card td:nth-child(4){color:#4da6ff;}
+    .pay-bizum td:nth-child(4){color:#b084f5;}
+    .pay-check td:nth-child(4){color:#f5d76e;}
 
     .summary{
       display:flex;justify-content:space-around;gap:10px;flex-wrap:wrap;
@@ -106,6 +107,13 @@
     .danger{border-color:#d9534f}.primary{border-color:#007bff}.secondary{border-color:#6c757d}
 
     .dropdown{display:none;margin-top:10px;border:1px solid var(--white);border-radius:5px;padding:10px;background:var(--orange-dark)}
+
+    /* Columna hora algo más discreta */
+    th.time-col, td.time-col{
+      font-size:0.85em;
+      color:#ddd;
+      white-space:nowrap;
+    }
   </style>
 </head>
 <body>
@@ -151,7 +159,13 @@
       <!-- Tabla -->
       <table id="historyTable">
         <thead>
-          <tr><th>Cliente</th><th>Importe</th><th>Forma de pago</th><th>Acciones</th></tr>
+          <tr>
+            <th>Cliente</th>
+            <th class="time-col">Hora</th>
+            <th>Importe</th>
+            <th>Forma de pago</th>
+            <th>Acciones</th>
+          </tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -192,6 +206,8 @@
       <div class="modal-form">
         <label for="editClient">Cliente</label>
         <input type="text" id="editClient" />
+        <label for="editTime">Hora</label>
+        <input type="text" id="editTime" placeholder="HH:MM" inputmode="numeric" />
         <label for="editAmount">Importe</label>
         <input type="text" id="editAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
         <label for="editPayment">Forma de pago</label>
@@ -255,6 +271,12 @@ function parseAmount(v){
   return parseFloat(c);
 }
 function setNegColor(el,v){Number(v)<0?el.classList.add('neg'):el.classList.remove('neg');}
+function getCurrentTimeStr(){
+  const d=new Date();
+  const hh=String(d.getHours()).padStart(2,'0');
+  const mm=String(d.getMinutes()).padStart(2,'0');
+  return `${hh}:${mm}`;
+}
 
 /* === Estado === */
 let historyData=[];let currentEditIndex=null;let revision=0;
@@ -303,12 +325,13 @@ function updateUI(){
   historyData.forEach((e,i)=>{
     const tr=document.createElement('tr');
     const tdC=document.createElement('td');tdC.textContent=e.client;
+    const tdH=document.createElement('td');tdH.textContent=e.time || ''; tdH.className='time-col';
     const tdA=document.createElement('td');tdA.textContent=formatNumber(e.amount);setNegColor(tdA,e.amount);
     const tdT=document.createElement('td');tdT.textContent=e.type;
     const tdAct=document.createElement('td');const btn=document.createElement('button');
     btn.type='button';btn.className='editBtn';btn.textContent='Editar';btn.dataset.i=i;
     tdAct.appendChild(btn);
-    tr.append(tdC,tdA,tdT,tdAct);
+    tr.append(tdC,tdH,tdA,tdT,tdAct);
 
     const cls = typeClasses[e.type];
     if(cls) tr.classList.add(cls);
@@ -358,6 +381,7 @@ function customAlert(msg,cb){
 function openEditModal(i){
   const e=historyData[i]; if(!e) return;
   $('#editClient').value=e.client;
+  $('#editTime').value=e.time || '';
   $('#editAmount').value=e.amount;
   $('#editPayment').value=e.type;
   $('#editModal').style.display='block';
@@ -366,10 +390,11 @@ function closeEditModal(){$('#editModal').style.display='none';currentEditIndex=
 
 $('#saveEdit').onclick=()=>{
   const c=$('#editClient').value.trim();
+  const h=$('#editTime').value.trim();
   const a=parseAmount($('#editAmount').value);
   const t=$('#editPayment').value;
   if(!c||isNaN(a)){customAlert('Datos inválidos');return;}
-  historyData[currentEditIndex]={client:c,amount:a,type:t};
+  historyData[currentEditIndex]={client:c,amount:a,type:t,time:h};
   saveHistory();updateUI();closeEditModal();bumpRevision();
 };
 $('#cancelEdit').onclick=closeEditModal;
@@ -404,7 +429,8 @@ $('#paymentForm').onsubmit=e=>{
   const a=parseAmount(amountInput.value);
   const t=document.querySelector('input[name="paymentType"]:checked')?.value;
   if(!c||isNaN(a)||!t){customAlert('Faltan datos válidos');return;}
-  historyData.push({client:c,amount:a,type:t});
+  const timeStr = getCurrentTimeStr();
+  historyData.push({client:c,amount:a,type:t,time:timeStr});
   saveHistory(); updateUI(); bumpRevision();
 
   e.target.reset();
@@ -470,14 +496,14 @@ $('#downloadExcel').onclick=async()=>{
   // Fila de tipos en mayúsculas, con columna separadora
   const typeRow = [];
   activeTypes.forEach(type=>{
-    typeRow.push(type.toUpperCase(),'',''); // nombre sobre 2 cols + 1 separadora
+    typeRow.push(type.toUpperCase(),'','',''); // nombre sobre 3 cols + 1 separadora
   });
   ws_data.push(typeRow);
 
-  // Fila Cliente / Importe + separador
+  // Fila Cliente / Hora / Importe + separador
   const headerRow = [];
   activeTypes.forEach(()=>{
-    headerRow.push('Cliente','Importe','');
+    headerRow.push('Cliente','Hora','Importe','');
   });
   ws_data.push(headerRow);
 
@@ -488,9 +514,9 @@ $('#downloadExcel').onclick=async()=>{
     activeTypes.forEach(type=>{
       const item = groups[type][i];
       if(item){
-        row.push(item.client, Number(item.amount), '');
+        row.push(item.client, item.time || '', Number(item.amount), '');
       }else{
-        row.push('','','');
+        row.push('','','','');
       }
     });
     ws_data.push(row);
@@ -501,12 +527,12 @@ $('#downloadExcel').onclick=async()=>{
   // Totales por tipo
   const totalsRow = [];
   activeTypes.forEach(type=>{
-    totalsRow.push('Total '+type, Number(totals[type]), '');
+    totalsRow.push('Total '+type, '', Number(totals[type]), '');
   });
   ws_data.push(totalsRow);
 
   // Total general
-  const totalCols = activeTypes.length*3;
+  const totalCols = activeTypes.length*4;
   const totalGeneralRow = [];
   totalGeneralRow.push('Total General', Number(totalGeneral));
   while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
@@ -518,9 +544,10 @@ $('#downloadExcel').onclick=async()=>{
   // Anchos de columnas
   const cols=[];
   for(let i=0;i<totalCols;i++){
-    const mod=i%3;
+    const mod=i%4;
     if(mod===0) cols.push({wch:18});   // Cliente
-    else if(mod===1) cols.push({wch:12}); // Importe
+    else if(mod===1) cols.push({wch:8}); // Hora
+    else if(mod===2) cols.push({wch:12}); // Importe
     else cols.push({wch:4});           // separador
   }
   ws['!cols']=cols;
@@ -537,8 +564,8 @@ $('#downloadExcel').onclick=async()=>{
     {s:{r:1,c:0},e:{r:1,c:totalCols-1}}  // fecha
   ];
   activeTypes.forEach((type,idx)=>{
-    const startCol = idx*3;
-    merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+1}});
+    const startCol = idx*4;
+    merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+2}});
   });
   ws['!merges']=merges;
 
