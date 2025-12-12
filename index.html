@@ -188,6 +188,39 @@
       font-size:0.95em;
     }
 
+    /* Sección semanas cerradas */
+    .closed-weeks-section{
+      margin-top:16px;
+      padding:10px;
+      border-radius:8px;
+      border:1px solid var(--white);
+      background:#00000033;
+      font-size:0.9em;
+    }
+    .closed-weeks-section h3{
+      margin:0 0 8px 0;
+      font-size:1em;
+    }
+    .closed-weeks-list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .closed-week-item{
+      width:100%;
+      text-align:left;
+      padding:6px 8px;
+      border-radius:6px;
+      border:1px solid var(--white);
+      background:transparent;
+      color:var(--white);
+      cursor:pointer;
+      font-size:0.85em;
+    }
+    .closed-week-item:hover{
+      background:#ffffff22;
+    }
+
     footer.footer{
       margin-top:16px;
       padding:6px 10px;
@@ -200,6 +233,7 @@
 
     .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000}
     .modal-content{background:var(--white);color:var(--black);margin:8% auto;padding:20px;border-radius:12px;width:360px;max-width:calc(100% - 24px)}
+    .modal-content.large{width:95%;max-width:1000px;}
     .modal-content h2{margin:0 0 12px 0;text-align:center}
     .modal-form{display:grid;grid-template-columns:1fr 1.5fr;gap:10px 12px;align-items:center}
     .modal-form input,.modal-form select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
@@ -227,6 +261,19 @@
       color:var(--white);
       cursor:pointer;
       margin:0 2px;
+    }
+
+    /* Modal semanas cerradas */
+    .closed-week-body{
+      max-height:70vh;
+      overflow:auto;
+      font-size:0.85em;
+    }
+    .closed-week-body table{
+      margin-top:8px;
+    }
+    .closed-week-totals p{
+      margin:2px 0;
     }
   </style>
 </head>
@@ -350,6 +397,12 @@
         <button id="downloadWeekly" class="btn-weekly">Descargar Excel semanal</button>
       </div>
 
+      <!-- Semanas cerradas -->
+      <div class="closed-weeks-section">
+        <h3>Semanas cerradas</h3>
+        <div id="closedWeeksList" class="closed-weeks-list"></div>
+      </div>
+
       <!-- Versión -->
       <footer class="footer">
         <span>Versión <span id="appVersion"></span></span>
@@ -405,6 +458,54 @@
     </div>
   </div>
 
+  <!-- Modal semanas cerradas -->
+  <div id="closedWeekModal" class="modal">
+    <div class="modal-content large">
+      <h2 id="closedWeekTitle">Semana cerrada</h2>
+      <div class="closed-week-body">
+        <div class="closed-week-totals">
+          <p><strong>Efectivo:</strong> <span id="cwTotalEfectivo"></span></p>
+          <p><strong>Tarjeta:</strong> <span id="cwTotalTarjeta"></span></p>
+          <p><strong>Bizum:</strong> <span id="cwTotalBizum"></span></p>
+          <p><strong>Talón:</strong> <span id="cwTotalTalon"></span></p>
+          <p><strong>Total general:</strong> <span id="cwTotalGeneral"></span></p>
+          <p><strong>Total ingreso:</strong> <span id="cwTotalIngreso"></span></p>
+          <p><strong>Diferencia:</strong> <span id="cwDiferencia"></span></p>
+        </div>
+
+        <h3>Movimientos</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Cliente</th>
+              <th>Importe</th>
+              <th>Forma de pago</th>
+            </tr>
+          </thead>
+          <tbody id="closedWeekHistoryBody"></tbody>
+        </table>
+
+        <h3>Ingresos</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Importe</th>
+            </tr>
+          </thead>
+          <tbody id="closedWeekIncomesBody"></tbody>
+        </table>
+      </div>
+      <div class="modal-buttons">
+        <button id="exportClosedWeek" class="primary">Exportar semana</button>
+        <button id="closeClosedWeek" class="secondary">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirmación -->
   <div id="confirmModal" class="modal">
     <div class="modal-content">
@@ -428,7 +529,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.5';
+const APP_BASE_VERSION = '1.6';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -561,6 +662,8 @@ let historyData=[];let currentEditIndex=null;let revision=0;
 let viewMode='day'; // 'day' | 'week'
 let incomesData=[];
 let currentIncomeIndex = null;
+let closedWeeks=[];
+let currentClosedWeekIndex = null;
 
 /* === Rango semanal (para vista y Excel semanal) === */
 function getWeeklyRange(){
@@ -649,6 +752,38 @@ function loadIncomes(){
 }
 function saveIncomes(){localStorage.setItem('incomes', JSON.stringify(incomesData));}
 
+/* === semanas cerradas === */
+function loadClosedWeeks(){
+  try{
+    closedWeeks = JSON.parse(localStorage.getItem('closedWeeks')||'[]');
+    if(!Array.isArray(closedWeeks)) closedWeeks=[];
+  }catch{closedWeeks=[];}
+}
+function saveClosedWeeks(){
+  localStorage.setItem('closedWeeks', JSON.stringify(closedWeeks));
+}
+function refreshClosedWeeksList(){
+  const container = $('#closedWeeksList');
+  if(!container) return;
+  clearNode(container);
+  if(!closedWeeks.length){
+    const em=document.createElement('em');
+    em.textContent='Sin semanas cerradas.';
+    container.appendChild(em);
+    return;
+  }
+  const items = closedWeeks.map((w,idx)=>({w,idx})).sort((a,b)=>b.w.startTs - a.w.startTs);
+  items.forEach(item=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='closed-week-item';
+    btn.textContent=`Semana del ${item.w.startLabel} al ${item.w.endLabel}`;
+    btn.dataset.index=item.idx;
+    btn.onclick=()=>openClosedWeekModal(item.idx);
+    container.appendChild(btn);
+  });
+}
+
 function updateVersionUI(){
   const vEl = $('#appVersion');
   const rEl = $('#appRevision');
@@ -705,7 +840,6 @@ function updateIncomeSummary(totalEfectivoVisible){
       .filter(e=>e.type==='Efectivo' && typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs)
       .reduce((s,e)=>s+(+e.amount||0),0);
   }else{
-    // Fallback: si el rango semanal no es válido, usamos la vista actual
     const list = getVisibleIncomes();
     totalIngreso = list.reduce((s,e)=>s+(+e.amount||0),0);
     baseEfectivo = totalEfectivoVisible;
@@ -811,7 +945,6 @@ function updateUI(){
   const totalGeneral = tE+tT+tB+tL;
   elTG.textContent=formatNumber(totalGeneral); setNegColor(elTG,totalGeneral);
 
-  // Ingresos (siempre semanal si rango válido)
   updateIncomeSummary(tE);
   updateIncomesTable();
 
@@ -1285,7 +1418,7 @@ function initWeeklySection(){
   addTimeMask(endTimeEl);
 }
 
-/* === Excel semanal (incluye ingresos) === */
+/* === Excel semanal (incluye ingresos + cierra semana) === */
 $('#downloadWeekly').onclick=async()=>{
   const sDateStr = $('#weekStartDate').value.trim();
   const sTimeStr = $('#weekStartTime').value.trim();
@@ -1441,35 +1574,268 @@ $('#downloadWeekly').onclick=async()=>{
 
   XLSX.utils.book_append_sheet(wb,ws,'Semanal');
 
-  const blob=new Blob(
-    [XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true})],
-    {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
-  );
-
   const sKey = `${sDateParts.yyyy}-${String(sDateParts.mm).padStart(2,'0')}-${String(sDateParts.dd).padStart(2,'0')}`;
   const eKey = `${eDateParts.yyyy}-${String(eDateParts.mm).padStart(2,'0')}-${String(eDateParts.dd).padStart(2,'0')}`;
   const fileName='liquidacion_semanal_'+sKey+'_a_'+eKey+'.xlsx';
-  const file=new File([blob],fileName,{type:blob.type});
+  const file=new File(
+    [new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true})],
+              {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})],
+    fileName,
+    {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+  );
 
   try{
     if(isShareSupported(file)){
       await navigator.share({files:[file],title:'Liquidación semanal',text:fileName});
     }else{
-      const url=URL.createObjectURL(blob);
+      const url=URL.createObjectURL(file);
       const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1500);
     }
   }catch(_){
-    const url=URL.createObjectURL(blob);
+    const url=URL.createObjectURL(file);
     const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 
-  // Guardar este fin como último cierre y como nuevo inicio por defecto
+  // Archivar esta semana como semana cerrada y limpiar datos activos
+  const closedWeek = {
+    startTs,
+    endTs,
+    startLabel: `${sDateStr} ${sTimeStr}`,
+    endLabel: `${eDateStr} ${eTimeStr}`,
+    history: weekData.map(e=>({...e})),
+    incomes: incomesInRange.map(e=>({...e})),
+    createdAt: Date.now()
+  };
+  closedWeeks.push(closedWeek);
+  saveClosedWeeks();
+  refreshClosedWeeksList();
+
+  historyData = historyData.filter(e=>!(typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs));
+  incomesData = incomesData.filter(e=>!(typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs));
+  saveHistory();
+  saveIncomes();
+  updateUI();
+  bumpRevision();
+
+  // Guardar este fin como último cierre y dejarlo como nuevo inicio
   localStorage.setItem('lastClosingTs', String(endTs));
   $('#weekStartDate').value = eDateStr;
   $('#weekStartTime').value = eTimeStr;
   saveWeeklySettings();
+};
+
+/* === Exportar semana cerrada === */
+async function exportClosedWeek(index){
+  const w = closedWeeks[index];
+  if(!w){
+    customAlert('No se ha encontrado la semana cerrada.');
+    return;
+  }
+  const weekData = w.history || [];
+  const incomesInRange = w.incomes || [];
+
+  if(weekData.length===0 && incomesInRange.length===0){
+    customAlert('Esta semana cerrada no tiene datos.');
+    return;
+  }
+
+  const allTypes=['Efectivo','Tarjeta','Bizum','Talón'];
+  const activeTypes = allTypes.filter(type=>weekData.some(e=>e.type===type));
+  if(activeTypes.length===0){
+    customAlert('No hay datos de formas de pago en esta semana cerrada.');
+    return;
+  }
+
+  const groups={};
+  const totals={};
+  activeTypes.forEach(type=>{
+    const list = weekData.filter(e=>e.type===type);
+    groups[type]=list;
+    totals[type]=list.reduce((s,e)=>s+(+e.amount||0),0);
+  });
+  const totalGeneral = activeTypes.reduce((s,type)=>s+totals[type],0);
+  const totalIngresos = incomesInRange.reduce((s,e)=>s+(+e.amount||0),0);
+  const totalEfectivoSemana = totals['Efectivo'] || 0;
+  const diferencia = totalEfectivoSemana - totalIngresos;
+
+  const ws_data=[];
+  ws_data.push(['Liquidación semanal (cerrada)']);
+  ws_data.push([`Desde: ${w.startLabel}   Hasta: ${w.endLabel}`]);
+  ws_data.push([]);
+
+  const typeRow=[];
+  activeTypes.forEach(type=>{
+    typeRow.push(type.toUpperCase(),'','','');
+  });
+  ws_data.push(typeRow);
+
+  const headerRow=[];
+  activeTypes.forEach(()=>{
+    headerRow.push('Cliente','Importe','Hora','');
+  });
+  ws_data.push(headerRow);
+
+  const maxLen = Math.max(...activeTypes.map(t=>groups[t].length));
+  for(let i=0;i<maxLen;i++){
+    const row=[];
+    activeTypes.forEach(type=>{
+      const item = groups[type][i];
+      if(item){
+        row.push(item.client, Number(item.amount), item.time||'', '');
+      }else{
+        row.push('','','','');
+      }
+    });
+    ws_data.push(row);
+  }
+
+  ws_data.push([]);
+
+  const totalsRow=[];
+  activeTypes.forEach(type=>{
+    totalsRow.push('Total '+type, Number(totals[type]), '', '');
+  });
+  ws_data.push(totalsRow);
+
+  const totalCols = activeTypes.length*4;
+  const totalGeneralRow=[];
+  totalGeneralRow.push('Total General', Number(totalGeneral));
+  while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
+  ws_data.push(totalGeneralRow);
+
+  ws_data.push([]);
+  ws_data.push(['Total Efectivo', Number(totalEfectivoSemana)]);
+  ws_data.push(['Total Ingreso', Number(totalIngresos)]);
+  if(Math.abs(diferencia)>0.00001){
+    ws_data.push(['Diferencia', Number(diferencia)]);
+  }
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(ws_data);
+
+  const cols=[];
+  for(let i=0;i<totalCols;i++){
+    const mod=i%4;
+    if(mod===0) cols.push({wch:18});
+    else if(mod===1) cols.push({wch:12});
+    else if(mod===2) cols.push({wch:8});
+    else cols.push({wch:4});
+  }
+  ws['!cols']=cols;
+
+  const merges=[
+    {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
+    {s:{r:1,c:0},e:{r:1,c:totalCols-1}}
+  ];
+  activeTypes.forEach((type,idx)=>{
+    const startCol=idx*4;
+    merges.push({s:{r:3,c:startCol},e:{r:3,c:startCol+2}});
+  });
+  ws['!merges']=merges;
+
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let R=0;R<=range.e.r;++R){
+    for(let C=0;C<=range.e.c;++C){
+      const addr=XLSX.utils.encode_cell({r:R,c:C});
+      const cell=ws[addr];
+      if(cell && typeof cell.v==='number'){
+        cell.z='0.00';
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb,ws,'Semanal');
+
+  const startDatePart = (w.startLabel.split(' ')[0]||'').replace(/\//g,'-');
+  const endDatePart = (w.endLabel.split(' ')[0]||'').replace(/\//g,'-');
+  const fileName = 'liquidacion_semanal_'+startDatePart+'_a_'+endDatePart+'_cerrada.xlsx';
+
+  const blob=new Blob(
+    [XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true})],
+    {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+  );
+  const file=new File([blob],fileName,{type:blob.type});
+
+  try{
+    if(isShareSupported(file)){
+      await navigator.share({files:[file],title:'Liquidación semanal cerrada',text:fileName});
+    }else{
+      const url=URL.createObjectURL(file);
+      const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+    }
+  }catch(_){
+    const url=URL.createObjectURL(file);
+    const a=document.createElement('a'); a.href=url; a.download=fileName; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+}
+
+/* === Modal semanas cerradas (ver detalle) === */
+function openClosedWeekModal(index){
+  const w = closedWeeks[index];
+  if(!w) return;
+  currentClosedWeekIndex=index;
+  $('#closedWeekTitle').textContent=`Semana del ${w.startLabel} al ${w.endLabel}`;
+
+  const hBody=$('#closedWeekHistoryBody');
+  const iBody=$('#closedWeekIncomesBody');
+  clearNode(hBody); clearNode(iBody);
+
+  const totals={Efectivo:0,Tarjeta:0,Bizum:0,'Talón':0};
+  (w.history||[]).forEach(e=>{
+    if(totals[e.type]==null) totals[e.type]=0;
+    totals[e.type]+=+e.amount||0;
+  });
+  const totalGeneral = Object.values(totals).reduce((s,v)=>s+v,0);
+  const totalIngresos = (w.incomes||[]).reduce((s,e)=>s+(+e.amount||0),0);
+  const diferencia = (totals['Efectivo']||0) - totalIngresos;
+
+  $('#cwTotalEfectivo').textContent = formatNumber(totals['Efectivo']||0);
+  $('#cwTotalTarjeta').textContent  = formatNumber(totals['Tarjeta']||0);
+  $('#cwTotalBizum').textContent    = formatNumber(totals['Bizum']||0);
+  $('#cwTotalTalon').textContent    = formatNumber(totals['Talón']||0);
+  $('#cwTotalGeneral').textContent  = formatNumber(totalGeneral);
+  $('#cwTotalIngreso').textContent  = formatNumber(totalIngresos);
+  const diffEl = $('#cwDiferencia');
+  diffEl.textContent = formatNumber(diferencia);
+  setNegColor(diffEl, diferencia);
+
+  (w.history||[]).forEach(e=>{
+    const tr=document.createElement('tr');
+    const tdD=document.createElement('td');tdD.textContent=formatDateFromKey(e.dateKey);
+    const tdH=document.createElement('td');tdH.textContent=e.time||'';
+    const tdC=document.createElement('td');tdC.textContent=e.client;
+    const tdA=document.createElement('td');tdA.textContent=formatNumber(e.amount);setNegColor(tdA,e.amount);
+    const tdT=document.createElement('td');tdT.textContent=e.type;
+    tr.append(tdD,tdH,tdC,tdA,tdT);
+    hBody.appendChild(tr);
+  });
+
+  (w.incomes||[]).forEach(e=>{
+    const tr=document.createElement('tr');
+    const tdD=document.createElement('td');tdD.textContent=formatDateFromKey(e.dateKey);
+    const tdH=document.createElement('td');tdH.textContent=e.time||'';
+    const tdA=document.createElement('td');tdA.textContent=formatNumber(e.amount);setNegColor(tdA,e.amount);
+    tr.append(tdD,tdH,tdA);
+    iBody.appendChild(tr);
+  });
+
+  $('#closedWeekModal').style.display='block';
+}
+function closeClosedWeekModal(){
+  $('#closedWeekModal').style.display='none';
+  currentClosedWeekIndex=null;
+}
+$('#closeClosedWeek').onclick=closeClosedWeekModal;
+$('#exportClosedWeek').onclick=()=>{
+  if(currentClosedWeekIndex==null){
+    customAlert('No hay semana seleccionada.');
+    return;
+  }
+  exportClosedWeek(currentClosedWeekIndex);
 };
 
 /* === Vista día/semana: botones y cambios === */
@@ -1517,6 +1883,7 @@ if(btnDay && btnWeek){
 /* === Start === */
 loadHistory();
 loadIncomes();
+loadClosedWeeks();
 setDefaultReportDateIfEmpty();
 updateUI();
 updateVersionUI();
@@ -1526,6 +1893,7 @@ addTimeMask($('#editTime'));
 addDateMask($('#incomeDate'));
 addTimeMask($('#incomeTime'));
 initWeeklySection();
+refreshClosedWeeksList();
 </script>
 </body>
 </html>
