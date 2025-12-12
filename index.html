@@ -105,6 +105,42 @@
     }
     .totalValue.neg{color:var(--neg)}
 
+    /* Bloque de ingresos */
+    .incomes-box{
+      margin-top:8px;
+      padding:8px 10px;
+      border-radius:6px;
+      background:#00000033;
+      font-size:0.9em;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .incomes-box strong{margin-right:6px;}
+    .incomes-row{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    @media(min-width:600px){
+      .incomes-row{
+        flex-direction:row;
+        gap:12px;
+      }
+    }
+    #btnAddIncome{
+      padding:6px 10px;
+      background:var(--blue);
+      border:1px solid var(--white);
+      border-radius:6px;
+      color:var(--white);
+      cursor:pointer;
+      font-size:0.85em;
+      white-space:nowrap;
+    }
+
     .buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
     .buttons button{flex:1;min-width:180px;padding:10px;background:var(--orange);border:none;color:var(--white);border-radius:5px;cursor:pointer}
 
@@ -180,6 +216,21 @@
       color:#ddd;
       white-space:nowrap;
     }
+
+    /* Botones ingresos tabla */
+    .btn-income{
+      padding:4px 6px;
+      font-size:0.8em;
+      border-radius:4px;
+      border:1px solid var(--white);
+      background:var(--blue);
+      color:var(--white);
+      cursor:pointer;
+      margin:0 2px;
+    }
+    .btn-income.del{
+      background:#b22222;
+    }
   </style>
 </head>
 <body>
@@ -228,7 +279,7 @@
         </div>
       </form>
 
-      <!-- Tabla -->
+      <!-- Tabla cobros -->
       <table id="historyTable">
         <thead>
           <tr>
@@ -250,6 +301,29 @@
         <div><strong>Talón:</strong> <span id="totalTalon" class="totalValue">0,00</span></div>
         <div><strong>Total:</strong> <span id="totalGeneral" class="totalValue">0,00</span></div>
       </div>
+
+      <!-- Ingresos -->
+      <div class="incomes-box">
+        <strong>Ingresos</strong>
+        <div class="incomes-row">
+          <span>Total ingresado: <span id="totalIngresos">0,00</span></span>
+          <span>Pendiente de ingresar: <span id="totalPendiente" class="totalValue">0,00</span></span>
+        </div>
+        <button id="btnAddIncome" type="button">Añadir ingreso</button>
+      </div>
+
+      <!-- Tabla ingresos (editable) -->
+      <table id="incomesTable">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Importe</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
       <!-- Dropdowns -->
       <div id="dropdownEfectivo" class="dropdown"></div>
@@ -287,7 +361,7 @@
     </div>
   </div>
 
-  <!-- Modal edición -->
+  <!-- Modal edición cobro -->
   <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Editar entrada</h2>
@@ -310,6 +384,25 @@
         <button id="deleteLine" class="danger">Eliminar línea</button>
         <button id="saveEdit" class="primary">Guardar</button>
         <button id="cancelEdit" class="secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal ingresos (alta/edición) -->
+  <div id="incomeModal" class="modal">
+    <div class="modal-content">
+      <h2>Ingreso</h2>
+      <div class="modal-form">
+        <label for="incomeDate">Fecha</label>
+        <input type="text" id="incomeDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric" />
+        <label for="incomeTime">Hora</label>
+        <input type="text" id="incomeTime" placeholder="HH:MM" maxlength="5" inputmode="numeric" />
+        <label for="incomeAmount">Importe</label>
+        <input type="text" id="incomeAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
+      </div>
+      <div class="modal-buttons">
+        <button id="saveIncome" class="primary">Guardar</button>
+        <button id="cancelIncome" class="secondary">Cancelar</button>
       </div>
     </div>
   </div>
@@ -337,7 +430,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.3';
+const APP_BASE_VERSION = '1.4';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -401,10 +494,6 @@ function parseTimeToParts(str){ // HH:MM -> {hh,mi} o null
   if(hh<0||hh>23||mi<0||mi>59) return null;
   return {hh,mi};
 }
-function formatDateFromKey(key){ // yyyy-mm-dd -> dd/mm/yyyy
-  const [yyyy,mm,dd]=key.split('-');
-  return `${dd}/${mm}/${yyyy}`;
-}
 function formatDateFromDate(d){
   const dd=String(d.getDate()).padStart(2,'0');
   const mm=String(d.getMonth()+1).padStart(2,'0');
@@ -415,6 +504,11 @@ function formatTimeFromDate(d){
   const hh=String(d.getHours()).padStart(2,'0');
   const mi=String(d.getMinutes()).padStart(2,'0');
   return `${hh}:${mi}`;
+}
+function formatDateFromKey(key){
+  if(!key) return '';
+  const [yyyy,mm,dd]=key.split('-');
+  return `${dd}/${mm}/${yyyy}`;
 }
 function getCurrentDateKey(){
   const input = $('#reportDate');
@@ -451,15 +545,15 @@ function addDateMask(input){
     this.value=v;
   });
 }
-/* Nueva: máscara de hora HH:MM sobre teclado numérico */
+/* Máscara de hora HH:MM sobre teclado numérico */
 function addTimeMask(input){
   if(!input) return;
   input.addEventListener('input', function(){
     let v = this.value.replace(/\D/g,'');
     if(v.length<=2){
-      this.value = v;              // solo horas de momento
+      this.value = v;
     }else{
-      this.value = v.slice(0,2)+':'+v.slice(2,4); // HH:MM
+      this.value = v.slice(0,2)+':'+v.slice(2,4);
     }
   });
 }
@@ -467,6 +561,8 @@ function addTimeMask(input){
 /* === Estado === */
 let historyData=[];let currentEditIndex=null;let revision=0;
 let viewMode='day'; // 'day' | 'week'
+let incomesData=[];
+let currentIncomeIndex = null;
 
 /* === Rango semanal (para vista y Excel semanal) === */
 function getWeeklyRange(){
@@ -528,6 +624,33 @@ function loadHistory(){
   }
 }
 function saveHistory(){localStorage.setItem('history',JSON.stringify(historyData));}
+
+function loadIncomes(){
+  try{
+    incomesData = JSON.parse(localStorage.getItem('incomes') || '[]');
+    if(!Array.isArray(incomesData)) incomesData=[];
+  }catch{incomesData=[];}
+
+  let changed=false;
+  incomesData.forEach(e=>{
+    if(!e.dateKey && e.date){
+      const parts = parseDateToParts(e.date);
+      if(parts){
+        const {yyyy,mm,dd}=parts;
+        e.dateKey = `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+        changed=true;
+      }
+    }
+    if(typeof e.ts!=='number'){
+      const key = e.dateKey || getTodayKey();
+      e.ts = tsFromKeyAndTime(key, e.time || '12:00');
+      changed=true;
+    }
+  });
+  if(changed) saveIncomes();
+}
+function saveIncomes(){localStorage.setItem('incomes', JSON.stringify(incomesData));}
+
 function updateVersionUI(){
   const vEl = $('#appVersion');
   const rEl = $('#appRevision');
@@ -553,8 +676,98 @@ function getVisibleData(){
   if(!key) return historyData;
   return historyData.filter(e=>e.dateKey===key);
 }
+function getVisibleIncomes(){
+  if(viewMode==='week'){
+    const range = getWeeklyRange();
+    if(!range) return [];
+    const {startTs,endTs} = range;
+    return incomesData.filter(e=>typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs);
+  }
+  const key = getCurrentDateKey();
+  if(!key) return incomesData;
+  return incomesData.filter(e=>e.dateKey===key);
+}
 
-/* === UI diaria/semanal === */
+/* === UI ingresos === */
+function updateIncomeSummary(totalEfectivo){
+  const list = getVisibleIncomes();
+  const totalIngreso = list.reduce((s,e)=>s+(+e.amount||0),0);
+  const pendiente = totalEfectivo - totalIngreso;
+
+  const elTI = $('#totalIngresos');
+  const elTP = $('#totalPendiente');
+  if(elTI){
+    elTI.textContent = formatNumber(totalIngreso);
+  }
+  if(elTP){
+    elTP.textContent = formatNumber(pendiente);
+    setNegColor(elTP, pendiente);
+  }
+}
+
+function updateIncomesTable(){
+  const tb = $('#incomesTable tbody');
+  if(!tb) return;
+  clearNode(tb);
+  const visible = getVisibleIncomes();
+  visible.forEach(inc=>{
+    const tr = document.createElement('tr');
+
+    const tdD = document.createElement('td');
+    tdD.textContent = formatDateFromKey(inc.dateKey);
+
+    const tdH = document.createElement('td');
+    tdH.textContent = inc.time || '';
+
+    const tdA = document.createElement('td');
+    tdA.textContent = formatNumber(inc.amount);
+    setNegColor(tdA, inc.amount);
+
+    const tdAct = document.createElement('td');
+    const idx = incomesData.indexOf(inc);
+
+    const btnE = document.createElement('button');
+    btnE.type='button';
+    btnE.className='btn-income btn-edit-income';
+    btnE.textContent='Editar';
+    btnE.dataset.i = idx;
+
+    const btnD = document.createElement('button');
+    btnD.type='button';
+    btnD.className='btn-income btn-del-income del';
+    btnD.textContent='Borrar';
+    btnD.dataset.i = idx;
+
+    tdAct.appendChild(btnE);
+    tdAct.appendChild(btnD);
+
+    tr.append(tdD,tdH,tdA,tdAct);
+    tb.appendChild(tr);
+  });
+
+  $$('.btn-edit-income').forEach(b=>{
+    b.onclick=()=>{
+      const i = Number(b.dataset.i);
+      openIncomeModal(i);
+    };
+  });
+  $$('.btn-del-income').forEach(b=>{
+    b.onclick=()=>{
+      const i = Number(b.dataset.i);
+      const inc = incomesData[i];
+      if(!inc) return;
+      customConfirm(`¿Eliminar ingreso de ${formatDateFromKey(inc.dateKey)} ${inc.time || ''} (${formatNumber(inc.amount)})?`, ok=>{
+        if(!ok) return;
+        incomesData.splice(i,1);
+        saveIncomes();
+        updateUI();
+        bumpRevision();
+      });
+    };
+  });
+}
+
+/* === UI diaria/semanal cobros === */
 function updateUI(){
   const tb=$('#historyTable tbody');clearNode(tb);
   const visibleData = getVisibleData();
@@ -605,6 +818,10 @@ function updateUI(){
   const totalGeneral = tE+tT+tB+tL;
   elTG.textContent=formatNumber(totalGeneral); setNegColor(elTG,totalGeneral);
 
+  // Ingresos vinculados a la misma vista
+  updateIncomeSummary(tE);
+  updateIncomesTable();
+
   const allRows = Array.from(tb.children);
   const visible = visibleData;
   $$('.editBtn').forEach((b)=>{
@@ -619,7 +836,7 @@ function updateUI(){
   });
 }
 
-/* === Modales === */
+/* === Modales genéricos === */
 function customConfirm(msg,cb){
   $('#confirmMessage').textContent=msg;
   const m=$('#confirmModal');m.style.display='block';
@@ -634,6 +851,7 @@ function customAlert(msg,cb){
   $('#alertAccept').onclick=()=>{m.style.display='none';if(cb)cb();};
 }
 
+/* === Editar cobro === */
 function openEditModal(i){
   const e=historyData[i]; if(!e) return;
   $('#editClient').value=e.client;
@@ -666,7 +884,65 @@ $('#deleteLine').onclick=()=>{
   });
 };
 
-/* === Formulario === */
+/* === Ingresos: alta/edición === */
+function openIncomeModal(index=null){
+  currentIncomeIndex = index;
+  const dateInput = $('#incomeDate');
+  const timeInput = $('#incomeTime');
+  const amountInput = $('#incomeAmount');
+
+  if(index!==null && incomesData[index]){
+    const inc = incomesData[index];
+    dateInput.value = formatDateFromKey(inc.dateKey);
+    timeInput.value = inc.time || '';
+    amountInput.value = inc.amount;
+  }else{
+    const now = new Date();
+    let defaultDate = $('#reportDate')?.value.trim() || '';
+    if(!parseDateToParts(defaultDate)){
+      defaultDate = formatDateFromDate(now);
+    }
+    dateInput.value = defaultDate;
+    timeInput.value = getCurrentTimeStr();
+    amountInput.value = '';
+  }
+  $('#incomeModal').style.display='block';
+}
+function closeIncomeModal(){
+  $('#incomeModal').style.display='none';
+  currentIncomeIndex = null;
+}
+$('#btnAddIncome').onclick=()=>openIncomeModal(null);
+$('#cancelIncome').onclick=closeIncomeModal;
+
+$('#saveIncome').onclick=()=>{
+  const dStr = $('#incomeDate').value.trim();
+  const tStr = $('#incomeTime').value.trim();
+  const a = parseAmount($('#incomeAmount').value);
+
+  const dParts = parseDateToParts(dStr);
+  const tParts = parseTimeToParts(tStr);
+  if(!dParts || !tParts || isNaN(a)){
+    customAlert('Datos de ingreso inválidos.');
+    return;
+  }
+  const {yyyy,mm,dd} = dParts;
+  const dateKey = `${yyyy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+  const ts = new Date(yyyy,mm-1,dd,tParts.hh,tParts.mi,0,0).getTime();
+
+  const obj = {amount:a,dateKey,time:tStr,ts};
+  if(currentIncomeIndex===null){
+    incomesData.push(obj);
+  }else{
+    incomesData[currentIncomeIndex]=obj;
+  }
+  saveIncomes();
+  updateUI();
+  bumpRevision();
+  closeIncomeModal();
+};
+
+/* === Formulario cobros === */
 const clientInput=$('#clientName'); const amountInput=$('#amount');
 const clearClientBtn=$('#clearClient'); const clearAmountBtn=$('#clearAmount'); const toggleSignBtn=$('#toggleSign');
 
@@ -705,8 +981,8 @@ $('#paymentForm').onsubmit=e=>{
   }
 };
 
-/* === Borrar historial === */
-$('#clearHistory').onclick=()=>customConfirm('¿Borrar historial?', ok=>{
+/* === Borrar historial cobros (no borra ingresos) === */
+$('#clearHistory').onclick=()=>customConfirm('¿Borrar historial de cobros?', ok=>{
   if(ok){
     historyData=[];
     saveHistory();
@@ -728,7 +1004,7 @@ $('#reportDate').addEventListener('change',()=>{
   }
 });
 
-/* === Excel diario (solo la fecha seleccionada) === */
+/* === Excel diario (solo cobros de la fecha seleccionada) === */
 function isShareSupported(file){return navigator.share&&navigator.canShare&&navigator.canShare({files:[file]});}
 $('#downloadExcel').onclick=async()=>{
   const dStr=$('#reportDate').value.trim();
@@ -764,7 +1040,6 @@ $('#downloadExcel').onclick=async()=>{
   // Fila de tipos en mayúsculas, con columna separadora
   const typeRow = [];
   activeTypes.forEach(type=>{
-    // nombre sobre 3 columnas (Cliente+Importe+Hora) + 1 separadora
     typeRow.push(type.toUpperCase(),'','','');
   });
   ws_data.push(typeRow);
@@ -822,21 +1097,17 @@ $('#downloadExcel').onclick=async()=>{
   ws['!cols']=cols;
 
   // Merges para títulos y tipos
-  const typeRowIndex = 3;
-  const dataStartRowIndex = 5;
-  const totalsRowIndex = dataStartRowIndex + maxLen + 1;
-
   const merges = [
     {s:{r:0,c:0},e:{r:0,c:totalCols-1}}, // título
     {s:{r:1,c:0},e:{r:1,c:totalCols-1}}  // fecha
   ];
   activeTypes.forEach((type,idx)=>{
     const startCol = idx*4;
-    merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+2}});
+    merges.push({s:{r:3,c:startCol},e:{r:3,c:startCol+2}});
   });
   ws['!merges']=merges;
 
-  // Formato numérico: siempre dos decimales (sin símbolo €)
+  // Formato numérico: siempre dos decimales
   const range = XLSX.utils.decode_range(ws['!ref']);
   for(let R=0; R<=range.e.r; ++R){
     for(let C=0; C<=range.e.c; ++C){
@@ -940,6 +1211,18 @@ $('#totalTalon').onclick=()=>{
   }
 };
 
+/* === Guardar ajustes de rango semanal === */
+function saveWeeklySettings(){
+  const sD = $('#weekStartDate')?.value.trim() || '';
+  const sT = $('#weekStartTime')?.value.trim() || '';
+  const eD = $('#weekEndDate')?.value.trim() || '';
+  const eT = $('#weekEndTime')?.value.trim() || '';
+  localStorage.setItem('weekStartDate', sD);
+  localStorage.setItem('weekStartTime', sT);
+  localStorage.setItem('weekEndDate', eD);
+  localStorage.setItem('weekEndTime', eT);
+}
+
 /* === Liquidación semanal: inicialización === */
 function initWeeklySection(){
   const startDateEl=$('#weekStartDate');
@@ -948,19 +1231,41 @@ function initWeeklySection(){
   const endTimeEl=$('#weekEndTime');
   if(!startDateEl || !startTimeEl || !endDateEl || !endTimeEl) return;
 
-  const lastTsStr = localStorage.getItem('lastClosingTs');
+  const savedStartDate = localStorage.getItem('weekStartDate');
+  const savedStartTime = localStorage.getItem('weekStartTime');
+  const savedEndDate   = localStorage.getItem('weekEndDate');
+  const savedEndTime   = localStorage.getItem('weekEndTime');
+
   const now = new Date();
-  let start = now;
-  if(lastTsStr && !isNaN(Number(lastTsStr))){
-    start = new Date(Number(lastTsStr));
+  let startDateStr, startTimeStr, endDateStr, endTimeStr;
+
+  if(
+    savedStartDate && savedStartTime && savedEndDate && savedEndTime &&
+    parseDateToParts(savedStartDate) && parseDateToParts(savedEndDate) &&
+    parseTimeToParts(savedStartTime) && parseTimeToParts(savedEndTime)
+  ){
+    startDateStr = savedStartDate;
+    startTimeStr = savedStartTime;
+    endDateStr   = savedEndDate;
+    endTimeStr   = savedEndTime;
   }else{
-    start = new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0,0);
+    const lastTsStr = localStorage.getItem('lastClosingTs');
+    let start = now;
+    if(lastTsStr && !isNaN(Number(lastTsStr))){
+      start = new Date(Number(lastTsStr));
+    }else{
+      start = new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0,0);
+    }
+    startDateStr = formatDateFromDate(start);
+    startTimeStr = formatTimeFromDate(start);
+    endDateStr   = formatDateFromDate(now);
+    endTimeStr   = formatTimeFromDate(now);
   }
 
-  startDateEl.value = formatDateFromDate(start);
-  startTimeEl.value = formatTimeFromDate(start);
-  endDateEl.value = formatDateFromDate(now);
-  endTimeEl.value = formatTimeFromDate(now);
+  startDateEl.value = startDateStr;
+  startTimeEl.value = startTimeStr;
+  endDateEl.value   = endDateStr;
+  endTimeEl.value   = endTimeStr;
 
   addDateMask(startDateEl);
   addDateMask(endDateEl);
@@ -968,7 +1273,7 @@ function initWeeklySection(){
   addTimeMask(endTimeEl);
 }
 
-/* === Excel semanal === */
+/* === Excel semanal (incluye ingresos) === */
 $('#downloadWeekly').onclick=async()=>{
   const sDateStr = $('#weekStartDate').value.trim();
   const sTimeStr = $('#weekStartTime').value.trim();
@@ -1021,6 +1326,12 @@ $('#downloadWeekly').onclick=async()=>{
   });
   const totalGeneral = activeTypes.reduce((s,type)=>s+totals[type],0);
 
+  // Ingresos en el mismo rango
+  const incomesInRange = incomesData.filter(e=>typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs);
+  const totalIngresos = incomesInRange.reduce((s,e)=>s+(+e.amount||0),0);
+  const totalEfectivoSemana = totals['Efectivo'] || 0;
+  const diferencia = totalEfectivoSemana - totalIngresos;
+
   const ws_data = [];
   ws_data.push(['Liquidación semanal']);
   ws_data.push([`Desde: ${sDateStr} ${sTimeStr}   Hasta: ${eDateStr} ${eTimeStr}`]);
@@ -1071,6 +1382,14 @@ $('#downloadWeekly').onclick=async()=>{
   while(totalGeneralRow.length<totalCols) totalGeneralRow.push('');
   ws_data.push(totalGeneralRow);
 
+  // Resumen efectivo / ingresos
+  ws_data.push([]);
+  ws_data.push(['Total Efectivo', Number(totalEfectivoSemana)]);
+  ws_data.push(['Total Ingreso', Number(totalIngresos)]);
+  if(Math.abs(diferencia) > 0.00001){
+    ws_data.push(['Diferencia', Number(diferencia)]);
+  }
+
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(ws_data);
 
@@ -1086,17 +1405,13 @@ $('#downloadWeekly').onclick=async()=>{
   ws['!cols']=cols;
 
   // Merges para títulos y tipos
-  const typeRowIndex = 3;
-  const dataStartRowIndex = 5;
-  const totalsRowIndex = dataStartRowIndex + maxLen + 1;
-
   const merges = [
     {s:{r:0,c:0},e:{r:0,c:totalCols-1}}, // título
     {s:{r:1,c:0},e:{r:1,c:totalCols-1}}  // rango fechas
   ];
   activeTypes.forEach((type,idx)=>{
     const startCol = idx*4;
-    merges.push({s:{r:typeRowIndex,c:startCol},e:{r:typeRowIndex,c:startCol+2}});
+    merges.push({s:{r:3,c:startCol},e:{r:3,c:startCol+2}});
   });
   ws['!merges']=merges;
 
@@ -1138,14 +1453,11 @@ $('#downloadWeekly').onclick=async()=>{
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 
-  // Preguntar si actualizamos el último cierre
-  customConfirm('¿Actualizar inicio de la próxima liquidación a este fin?', ok=>{
-    if(ok){
-      localStorage.setItem('lastClosingTs', String(endTs));
-      $('#weekStartDate').value = eDateStr;
-      $('#weekStartTime').value = eTimeStr;
-    }
-  });
+  // Guardar este fin como último cierre
+  localStorage.setItem('lastClosingTs', String(endTs));
+  $('#weekStartDate').value = eDateStr;
+  $('#weekStartTime').value = eTimeStr;
+  saveWeeklySettings();
 };
 
 /* === Vista día/semana: botones y cambios === */
@@ -1174,20 +1486,16 @@ if(btnDay && btnWeek){
   };
 }
 
-/* Cuando cambian fechas/horas de semana y estamos en vista semanal, refrescamos */
+/* Cuando cambian fechas/horas de semana y estamos en vista semanal, refrescamos y guardamos */
 ['weekStartDate','weekStartTime','weekEndDate','weekEndTime'].forEach(id=>{
   const el=document.getElementById(id);
   if(id==='weekStartDate' || id==='weekEndDate') addDateMask(el);
   if(id==='weekStartTime' || id==='weekEndTime') addTimeMask(el);
   if(el){
     el.addEventListener('change',()=>{
+      saveWeeklySettings();
       if(viewMode==='week'){
-        const range=getWeeklyRange();
-        if(!range){
-          updateUI();
-        }else{
-          updateUI();
-        }
+        updateUI();
         hideAllDropdowns();
       }
     });
@@ -1196,14 +1504,16 @@ if(btnDay && btnWeek){
 
 /* === Start === */
 loadHistory();
+loadIncomes();
 setDefaultReportDateIfEmpty();
 updateUI();
 updateVersionUI();
 toggleClearBtn($('#clientName'), $('#clearClient'));
 toggleClearBtn($('#amount'), $('#clearAmount'));
-initWeeklySection();
-/* Máscara también para el campo de edición de hora */
 addTimeMask($('#editTime'));
+addDateMask($('#incomeDate'));
+addTimeMask($('#incomeTime'));
+initWeeklySection();
 </script>
 </body>
 </html>
