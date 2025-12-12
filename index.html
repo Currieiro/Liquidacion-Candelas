@@ -228,9 +228,6 @@
       cursor:pointer;
       margin:0 2px;
     }
-    .btn-income.del{
-      background:#b22222;
-    }
   </style>
 </head>
 <body>
@@ -306,8 +303,8 @@
       <div class="incomes-box">
         <strong>Ingresos</strong>
         <div class="incomes-row">
-          <span>Total ingresado: <span id="totalIngresos">0,00</span></span>
-          <span>Pendiente de ingresar: <span id="totalPendiente" class="totalValue">0,00</span></span>
+          <span>Total ingresado (semana): <span id="totalIngresos">0,00</span></span>
+          <span>Pendiente de ingresar (semana): <span id="totalPendiente" class="totalValue">0,00</span></span>
         </div>
         <button id="btnAddIncome" type="button">Añadir ingreso</button>
       </div>
@@ -401,6 +398,7 @@
         <input type="text" id="incomeAmount" inputmode="decimal" pattern="-?[0-9]*[.,]?[0-9]*" />
       </div>
       <div class="modal-buttons">
+        <button id="deleteIncome" class="danger">Eliminar ingreso</button>
         <button id="saveIncome" class="primary">Guardar</button>
         <button id="cancelIncome" class="secondary">Cancelar</button>
       </div>
@@ -430,7 +428,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.4';
+const APP_BASE_VERSION = '1.5';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -688,23 +686,39 @@ function getVisibleIncomes(){
   return incomesData.filter(e=>e.dateKey===key);
 }
 
-/* === UI ingresos === */
-function updateIncomeSummary(totalEfectivo){
-  const list = getVisibleIncomes();
-  const totalIngreso = list.reduce((s,e)=>s+(+e.amount||0),0);
-  const pendiente = totalEfectivo - totalIngreso;
-
+/* === Resumen de ingresos: SIEMPRE semanal cuando haya rango válido === */
+function updateIncomeSummary(totalEfectivoVisible){
   const elTI = $('#totalIngresos');
   const elTP = $('#totalPendiente');
-  if(elTI){
-    elTI.textContent = formatNumber(totalIngreso);
+  if(!elTI || !elTP) return;
+
+  const range = getWeeklyRange();
+  let totalIngreso = 0;
+  let baseEfectivo = 0;
+
+  if(range){
+    const {startTs,endTs} = range;
+    totalIngreso = incomesData
+      .filter(e=>typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs)
+      .reduce((s,e)=>s+(+e.amount||0),0);
+    baseEfectivo = historyData
+      .filter(e=>e.type==='Efectivo' && typeof e.ts==='number' && e.ts>startTs && e.ts<=endTs)
+      .reduce((s,e)=>s+(+e.amount||0),0);
+  }else{
+    // Fallback: si el rango semanal no es válido, usamos la vista actual
+    const list = getVisibleIncomes();
+    totalIngreso = list.reduce((s,e)=>s+(+e.amount||0),0);
+    baseEfectivo = totalEfectivoVisible;
   }
-  if(elTP){
-    elTP.textContent = formatNumber(pendiente);
-    setNegColor(elTP, pendiente);
-  }
+
+  const pendiente = baseEfectivo - totalIngreso;
+
+  elTI.textContent = formatNumber(totalIngreso);
+  elTP.textContent = formatNumber(pendiente);
+  setNegColor(elTP, pendiente);
 }
 
+/* === Tabla de ingresos === */
 function updateIncomesTable(){
   const tb = $('#incomesTable tbody');
   if(!tb) return;
@@ -728,41 +742,20 @@ function updateIncomesTable(){
 
     const btnE = document.createElement('button');
     btnE.type='button';
-    btnE.className='btn-income btn-edit-income';
+    btnE.className='btn-income';
     btnE.textContent='Editar';
     btnE.dataset.i = idx;
 
-    const btnD = document.createElement('button');
-    btnD.type='button';
-    btnD.className='btn-income btn-del-income del';
-    btnD.textContent='Borrar';
-    btnD.dataset.i = idx;
-
     tdAct.appendChild(btnE);
-    tdAct.appendChild(btnD);
 
     tr.append(tdD,tdH,tdA,tdAct);
     tb.appendChild(tr);
   });
 
-  $$('.btn-edit-income').forEach(b=>{
+  $$('.btn-income').forEach(b=>{
     b.onclick=()=>{
       const i = Number(b.dataset.i);
       openIncomeModal(i);
-    };
-  });
-  $$('.btn-del-income').forEach(b=>{
-    b.onclick=()=>{
-      const i = Number(b.dataset.i);
-      const inc = incomesData[i];
-      if(!inc) return;
-      customConfirm(`¿Eliminar ingreso de ${formatDateFromKey(inc.dateKey)} ${inc.time || ''} (${formatNumber(inc.amount)})?`, ok=>{
-        if(!ok) return;
-        incomesData.splice(i,1);
-        saveIncomes();
-        updateUI();
-        bumpRevision();
-      });
     };
   });
 }
@@ -818,7 +811,7 @@ function updateUI(){
   const totalGeneral = tE+tT+tB+tL;
   elTG.textContent=formatNumber(totalGeneral); setNegColor(elTG,totalGeneral);
 
-  // Ingresos vinculados a la misma vista
+  // Ingresos (siempre semanal si rango válido)
   updateIncomeSummary(tE);
   updateIncomesTable();
 
@@ -890,12 +883,14 @@ function openIncomeModal(index=null){
   const dateInput = $('#incomeDate');
   const timeInput = $('#incomeTime');
   const amountInput = $('#incomeAmount');
+  const deleteBtn = $('#deleteIncome');
 
   if(index!==null && incomesData[index]){
     const inc = incomesData[index];
     dateInput.value = formatDateFromKey(inc.dateKey);
     timeInput.value = inc.time || '';
     amountInput.value = inc.amount;
+    deleteBtn.style.display = 'inline-flex';
   }else{
     const now = new Date();
     let defaultDate = $('#reportDate')?.value.trim() || '';
@@ -905,6 +900,7 @@ function openIncomeModal(index=null){
     dateInput.value = defaultDate;
     timeInput.value = getCurrentTimeStr();
     amountInput.value = '';
+    deleteBtn.style.display = 'none';
   }
   $('#incomeModal').style.display='block';
 }
@@ -940,6 +936,22 @@ $('#saveIncome').onclick=()=>{
   updateUI();
   bumpRevision();
   closeIncomeModal();
+};
+
+$('#deleteIncome').onclick=()=>{
+  if(currentIncomeIndex===null || !incomesData[currentIncomeIndex]){ 
+    closeIncomeModal(); 
+    return; 
+  }
+  const inc = incomesData[currentIncomeIndex];
+  customConfirm(`¿Eliminar ingreso de ${formatDateFromKey(inc.dateKey)} ${inc.time || ''} (${formatNumber(inc.amount)})?`, ok=>{
+    if(!ok) return;
+    incomesData.splice(currentIncomeIndex,1);
+    saveIncomes();
+    updateUI();
+    bumpRevision();
+    closeIncomeModal();
+  });
 };
 
 /* === Formulario cobros === */
@@ -1453,7 +1465,7 @@ $('#downloadWeekly').onclick=async()=>{
     setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 
-  // Guardar este fin como último cierre
+  // Guardar este fin como último cierre y como nuevo inicio por defecto
   localStorage.setItem('lastClosingTs', String(endTs));
   $('#weekStartDate').value = eDateStr;
   $('#weekStartTime').value = eTimeStr;
@@ -1486,7 +1498,7 @@ if(btnDay && btnWeek){
   };
 }
 
-/* Cuando cambian fechas/horas de semana y estamos en vista semanal, refrescamos y guardamos */
+/* Cuando cambian fechas/horas de semana, guardamos y si vista semanal, refrescamos */
 ['weekStartDate','weekStartTime','weekEndDate','weekEndTime'].forEach(id=>{
   const el=document.getElementById(id);
   if(id==='weekStartDate' || id==='weekEndDate') addDateMask(el);
