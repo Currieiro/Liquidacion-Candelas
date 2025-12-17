@@ -191,18 +191,42 @@
       background:#d9534f;
     }
 
-    /* Sección semanas cerradas */
+    /* Sección semanas cerradas (desplegable) */
     .closed-weeks-section{
       margin-top:16px;
-      padding:10px;
+      padding:8px;
       border-radius:8px;
       border:1px solid var(--white);
       background:#00000033;
       font-size:0.9em;
     }
-    .closed-weeks-section h3{
-      margin:0 0 8px 0;
-      font-size:1em;
+    .closed-weeks-toggle{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:6px;
+      border:1px solid var(--white);
+      background:transparent;
+      color:var(--white);
+      cursor:pointer;
+      font-size:0.9em;
+    }
+    .closed-weeks-toggle span:first-child{
+      font-weight:bold;
+    }
+    .closed-weeks-count{
+      font-size:0.85em;
+      opacity:0.8;
+    }
+    .closed-weeks-arrow{
+      margin-left:auto;
+      font-size:0.9em;
+    }
+    .closed-weeks-panel{
+      display:none;
+      margin-top:8px;
     }
     .closed-weeks-list{
       display:flex;
@@ -368,7 +392,7 @@
         <button id="btnAddIncome" type="button">Añadir ingreso</button>
       </div>
 
-      <!-- Tabla ingresos (editable) -->
+      <!-- Tabla ingresos -->
       <table id="incomesTable">
         <thead>
           <tr>
@@ -410,10 +434,16 @@
         <button id="closeWeek" class="btn-weekly btn-close-week" type="button">Cerrar semana</button>
       </div>
 
-      <!-- Semanas cerradas -->
+      <!-- Semanas cerradas (desplegable) -->
       <div class="closed-weeks-section">
-        <h3>Semanas cerradas</h3>
-        <div id="closedWeeksList" class="closed-weeks-list"></div>
+        <button type="button" id="toggleClosedWeeks" class="closed-weeks-toggle">
+          <span>Semanas cerradas</span>
+          <span id="closedWeeksCount" class="closed-weeks-count">(0)</span>
+          <span class="closed-weeks-arrow">▼</span>
+        </button>
+        <div id="closedWeeksPanel" class="closed-weeks-panel">
+          <div id="closedWeeksList" class="closed-weeks-list"></div>
+        </div>
       </div>
 
       <!-- Versión -->
@@ -451,7 +481,7 @@
     </div>
   </div>
 
-  <!-- Modal ingresos (alta/edición) -->
+  <!-- Modal ingresos -->
   <div id="incomeModal" class="modal">
     <div class="modal-content">
       <h2>Ingreso</h2>
@@ -543,7 +573,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.7';
+const APP_BASE_VERSION = '1.8';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -777,6 +807,10 @@ function saveClosedWeeks(){
 function refreshClosedWeeksList(){
   const container = $('#closedWeeksList');
   if(!container) return;
+  const countSpan = $('#closedWeeksCount');
+  if(countSpan){
+    countSpan.textContent = `(${closedWeeks.length})`;
+  }
   clearNode(container);
   if(!closedWeeks.length){
     const em=document.createElement('em');
@@ -1899,6 +1933,18 @@ if(btnDay && btnWeek){
     });
   }
 });
+
+/* === Toggle desplegable semanas cerradas === */
+const toggleClosedWeeksBtn = $('#toggleClosedWeeks');
+const closedWeeksPanelEl = $('#closedWeeksPanel');
+if(toggleClosedWeeksBtn && closedWeeksPanelEl){
+  toggleClosedWeeksBtn.onclick = ()=>{
+    const isOpen = closedWeeksPanelEl.style.display === 'block';
+    closedWeeksPanelEl.style.display = isOpen ? 'none' : 'block';
+    const arrow = $('.closed-weeks-arrow');
+    if(arrow) arrow.textContent = isOpen ? '▼' : '▲';
+  };
+}
 
 /* === Start === */
 loadHistory();
