@@ -605,7 +605,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.9';
+const APP_BASE_VERSION = '1.9.1';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -1438,14 +1438,10 @@ function saveWeeklySettings(){
   localStorage.setItem('weekEndTime', eT);
 }
 
-function flashWeeklySaved(button){
+function markWeeklySaved(button){
   if(!button) return;
   button.classList.add('saved');
   button.textContent='✓';
-  clearTimeout(button._savedTimer);
-  button._savedTimer=setTimeout(()=>{
-    button.classList.remove('saved');
-  },1200);
 }
 
 function saveWeeklyBoundary(kind){
@@ -1474,9 +1470,11 @@ function saveWeeklyBoundary(kind){
   if(isStart){
     localStorage.setItem('weekStartDate', dateValue);
     localStorage.setItem('weekStartTime', timeValue);
+    localStorage.setItem('weekStartConfirmed', '1');
   }else{
     localStorage.setItem('weekEndDate', dateValue);
     localStorage.setItem('weekEndTime', timeValue);
+    localStorage.setItem('weekEndConfirmed', '1');
   }
 
   dateEl.blur();
@@ -1485,7 +1483,7 @@ function saveWeeklyBoundary(kind){
     document.activeElement.blur();
   }
 
-  flashWeeklySaved(button);
+  markWeeklySaved(button);
 
   if(viewMode==='week'){
     updateUI();
@@ -1506,41 +1504,59 @@ function initWeeklySection(){
   const savedEndDate   = localStorage.getItem('weekEndDate');
   const savedEndTime   = localStorage.getItem('weekEndTime');
 
-  const now = new Date();
-  let startDateStr, startTimeStr, endDateStr, endTimeStr;
+  const startConfirmed = localStorage.getItem('weekStartConfirmed') === '1';
+  const endConfirmed   = localStorage.getItem('weekEndConfirmed') === '1';
 
-  if(
-    savedStartDate && savedStartTime && savedEndDate && savedEndTime &&
-    parseDateToParts(savedStartDate) && parseDateToParts(savedEndDate) &&
-    parseTimeToParts(savedStartTime) && parseTimeToParts(savedEndTime)
-  ){
-    startDateStr = savedStartDate;
-    startTimeStr = savedStartTime;
-    endDateStr   = savedEndDate;
-    endTimeStr   = savedEndTime;
+  const now = new Date();
+
+  const lastTsStr = localStorage.getItem('lastClosingTs');
+  let defaultStart;
+  if(lastTsStr && !isNaN(Number(lastTsStr))){
+    defaultStart = new Date(Number(lastTsStr));
   }else{
-    const lastTsStr = localStorage.getItem('lastClosingTs');
-    let start = now;
-    if(lastTsStr && !isNaN(Number(lastTsStr))){
-      start = new Date(Number(lastTsStr));
-    }else{
-      start = new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0,0);
-    }
-    startDateStr = formatDateFromDate(start);
-    startTimeStr = formatTimeFromDate(start);
-    endDateStr   = formatDateFromDate(now);
-    endTimeStr   = formatTimeFromDate(now);
+    defaultStart = new Date(
+      now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0
+    );
   }
 
-  startDateEl.value = startDateStr;
-  startTimeEl.value = startTimeStr;
-  endDateEl.value   = endDateStr;
-  endTimeEl.value   = endTimeStr;
+  const validSavedStart =
+    savedStartDate && savedStartTime &&
+    parseDateToParts(savedStartDate) &&
+    parseTimeToParts(savedStartTime);
+
+  const validSavedEnd =
+    savedEndDate && savedEndTime &&
+    parseDateToParts(savedEndDate) &&
+    parseTimeToParts(savedEndTime);
+
+  startDateEl.value = validSavedStart
+    ? savedStartDate
+    : formatDateFromDate(defaultStart);
+
+  startTimeEl.value = validSavedStart
+    ? savedStartTime
+    : formatTimeFromDate(defaultStart);
+
+  endDateEl.value = validSavedEnd
+    ? savedEndDate
+    : formatDateFromDate(now);
+
+  endTimeEl.value = validSavedEnd
+    ? savedEndTime
+    : formatTimeFromDate(now);
 
   addDateMask(startDateEl);
   addDateMask(endDateEl);
   addTimeMask(startTimeEl);
   addTimeMask(endTimeEl);
+
+  if(validSavedStart && startConfirmed){
+    markWeeklySaved($('#saveWeekStart'));
+  }
+
+  if(validSavedEnd && endConfirmed){
+    markWeeklySaved($('#saveWeekEnd'));
+  }
 }
 
 /* === Excel semanal (solo descargar, NO cerrar) === */
@@ -1742,8 +1758,18 @@ $('#closeWeek').onclick=()=>{
       bumpRevision();
 
       localStorage.setItem('lastClosingTs', String(endTs));
+
       $('#weekStartDate').value = eDateStr;
       $('#weekStartTime').value = eTimeStr;
+
+      localStorage.setItem('weekStartDate', eDateStr);
+      localStorage.setItem('weekStartTime', eTimeStr);
+      localStorage.setItem('weekStartConfirmed', '1');
+      markWeeklySaved($('#saveWeekStart'));
+
+      localStorage.removeItem('weekEndConfirmed');
+      $('#saveWeekEnd')?.classList.remove('saved');
+
       saveWeeklySettings();
 
       customAlert('Semana cerrada y archivada correctamente.');
@@ -2012,10 +2038,16 @@ if(btnDay && btnWeek){
   if(id==='weekStartTime' || id==='weekEndTime') addTimeMask(el);
   if(el){
     el.addEventListener('input',()=>{
-      const button = (id==='weekStartDate' || id==='weekStartTime')
-        ? $('#saveWeekStart')
-        : $('#saveWeekEnd');
+      const isStartField = id==='weekStartDate' || id==='weekStartTime';
+      const button = isStartField ? $('#saveWeekStart') : $('#saveWeekEnd');
+
       if(button) button.classList.remove('saved');
+
+      if(isStartField){
+        localStorage.removeItem('weekStartConfirmed');
+      }else{
+        localStorage.removeItem('weekEndConfirmed');
+      }
     });
   }
 });
