@@ -167,6 +167,34 @@
     .week-row label{
       min-width:52px;
     }
+    .week-save-check{
+      flex:0 0 40px;
+      width:40px;
+      height:40px;
+      padding:0;
+      border:1px solid var(--white);
+      border-radius:50%;
+      background:var(--blue);
+      color:var(--white);
+      font-size:1.2em;
+      font-weight:bold;
+      line-height:1;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform .12s ease, background .18s ease;
+    }
+    .week-save-check:active{
+      transform:scale(.94);
+    }
+    .week-save-check.saved{
+      background:#28a745;
+    }
+    .week-save-check:focus-visible{
+      outline:2px solid var(--orange);
+      outline-offset:2px;
+    }
     .week-section input{
       padding:6px 8px;
       font-size:0.9em;
@@ -424,11 +452,15 @@
           <label>Inicio:</label>
           <input type="text" id="weekStartDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric">
           <input type="text" id="weekStartTime" placeholder="HH:MM" maxlength="5" inputmode="numeric">
+          <button id="saveWeekStart" class="week-save-check" type="button"
+                  title="Guardar inicio" aria-label="Guardar fecha y hora de inicio">✓</button>
         </div>
         <div class="week-row">
           <label>Fin:</label>
           <input type="text" id="weekEndDate" placeholder="DD/MM/AAAA" maxlength="10" inputmode="numeric">
           <input type="text" id="weekEndTime" placeholder="HH:MM" maxlength="5" inputmode="numeric">
+          <button id="saveWeekEnd" class="week-save-check" type="button"
+                  title="Guardar fin" aria-label="Guardar fecha y hora de fin">✓</button>
         </div>
         <button id="downloadWeekly" class="btn-weekly" type="button">Descargar Excel semanal</button>
         <button id="closeWeek" class="btn-weekly btn-close-week" type="button">Cerrar semana</button>
@@ -573,7 +605,7 @@
 
 <script>
 /* === Versión automática === */
-const APP_BASE_VERSION = '1.8';
+const APP_BASE_VERSION = '1.9';
 function computeAppVersion() {
   const d = new Date(document.lastModified || Date.now());
   const yy = String(d.getFullYear()).slice(-2);
@@ -1406,6 +1438,61 @@ function saveWeeklySettings(){
   localStorage.setItem('weekEndTime', eT);
 }
 
+function flashWeeklySaved(button){
+  if(!button) return;
+  button.classList.add('saved');
+  button.textContent='✓';
+  clearTimeout(button._savedTimer);
+  button._savedTimer=setTimeout(()=>{
+    button.classList.remove('saved');
+  },1200);
+}
+
+function saveWeeklyBoundary(kind){
+  const isStart = kind === 'start';
+  const dateEl = $(isStart ? '#weekStartDate' : '#weekEndDate');
+  const timeEl = $(isStart ? '#weekStartTime' : '#weekEndTime');
+  const button = $(isStart ? '#saveWeekStart' : '#saveWeekEnd');
+
+  if(!dateEl || !timeEl) return;
+
+  const dateValue = dateEl.value.trim();
+  const timeValue = timeEl.value.trim();
+
+  if(!parseDateToParts(dateValue)){
+    customAlert(`Fecha de ${isStart ? 'inicio' : 'fin'} no válida. Usa DD/MM/AAAA.`);
+    dateEl.focus();
+    return;
+  }
+
+  if(!parseTimeToParts(timeValue)){
+    customAlert(`Hora de ${isStart ? 'inicio' : 'fin'} no válida. Usa HH:MM.`);
+    timeEl.focus();
+    return;
+  }
+
+  if(isStart){
+    localStorage.setItem('weekStartDate', dateValue);
+    localStorage.setItem('weekStartTime', timeValue);
+  }else{
+    localStorage.setItem('weekEndDate', dateValue);
+    localStorage.setItem('weekEndTime', timeValue);
+  }
+
+  dateEl.blur();
+  timeEl.blur();
+  if(document.activeElement && typeof document.activeElement.blur === 'function'){
+    document.activeElement.blur();
+  }
+
+  flashWeeklySaved(button);
+
+  if(viewMode==='week'){
+    updateUI();
+    hideAllDropdowns();
+  }
+}
+
 /* === Inicializar sección semanal === */
 function initWeeklySection(){
   const startDateEl=$('#weekStartDate');
@@ -1924,15 +2011,17 @@ if(btnDay && btnWeek){
   if(id==='weekStartDate' || id==='weekEndDate') addDateMask(el);
   if(id==='weekStartTime' || id==='weekEndTime') addTimeMask(el);
   if(el){
-    el.addEventListener('change',()=>{
-      saveWeeklySettings();
-      if(viewMode==='week'){
-        updateUI();
-        hideAllDropdowns();
-      }
+    el.addEventListener('input',()=>{
+      const button = (id==='weekStartDate' || id==='weekStartTime')
+        ? $('#saveWeekStart')
+        : $('#saveWeekEnd');
+      if(button) button.classList.remove('saved');
     });
   }
 });
+
+$('#saveWeekStart').onclick=()=>saveWeeklyBoundary('start');
+$('#saveWeekEnd').onclick=()=>saveWeeklyBoundary('end');
 
 /* === Toggle desplegable semanas cerradas === */
 const toggleClosedWeeksBtn = $('#toggleClosedWeeks');
